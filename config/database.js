@@ -1,14 +1,22 @@
 import { Sequelize } from 'sequelize'
 import dotenv from 'dotenv'
-dotenv.config() // ¡Asegurate que esto se ejecuta antes de acceder a process.env!
+dotenv.config()
 
-const url = process.env.MYSQL_URL
+const {
+  MYSQLHOST,
+  MYSQLPORT,
+  MYSQLUSER,
+  MYSQLPASSWORD,
+  MYSQLDATABASE
+} = process.env
 
-if (!url) {
-  throw new Error('MYSQL_URL no está definida. Verificá el .env')
+if (!MYSQLHOST || !MYSQLPORT || !MYSQLUSER || !MYSQLPASSWORD || !MYSQLDATABASE) {
+  throw new Error('❌ Variables MySQL no definidas. Verificá el .env o Railway > Variables')
 }
 
-const sequelize = new Sequelize(url, {
+const sequelize = new Sequelize(MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD, {
+  host: MYSQLHOST,
+  port: MYSQLPORT,
   dialect: 'mysql',
   logging: false,
 })
