@@ -16,6 +16,8 @@ const {
   MYSQLDATABASE
 } = process.env
 
+console.log('TODAS variables entorno:', process.env)
+
 console.log('🔍 VARIABLES DB: ', {
   MYSQLHOST,
   MYSQLPORT,
