@@ -1,0 +1,65 @@
+# ───────────────────────────────
+# DEPENDENCIAS
+# ───────────────────────────────
+node_modules/        
+
+# ───────────────────────────────
+# COMPILADOS (por si usás bundlers o transpilers)
+# ───────────────────────────────
+dist/
+build/
+misservices/
+seed/
+tests
+
+
+
+# ───────────────────────────────
+# VARIABLES DE ENTORNO
+# ───────────────────────────────
+.env                  
+.env.*                
+
+# ───────────────────────────────
+# SCRIPTS Y ARCHIVOS DE BD
+# ───────────────────────────────
+setup.js             # Scripts de setup de BD
+benchmark-ventas.js  # Scripts de benchmark para ventas
+seedLicencia.js      # Seeders manuales
+*.sql                # Backups o scripts SQL
+*.bak
+*.dump
+
+# ───────────────────────────────
+# LOGS Y ERRORES
+# ───────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+logs/
+
+# ───────────────────────────────
+# CONFIGURACIÓN DE EDITORES
+# ───────────────────────────────
+.vscode/             # Configuración de Visual Studio Code
+.idea/               # Configuración JetBrains/WebStorm
+*.swp                # Archivos swap temporales
+*.swo
+
+# ───────────────────────────────
+# ARCHIVOS TEMPORALES
+# ───────────────────────────────
+tmp/
+temp/
+
+# ───────────────────────────────
+# ARCHIVOS DEL SISTEMA OPERATIVO
+# ───────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
