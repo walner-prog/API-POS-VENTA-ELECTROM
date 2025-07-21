@@ -34,11 +34,27 @@ app.get('/', (req, res) => res.send('API Pos funcionando 🚀'))
 
 // Conectar a la DB y arrancar servidor
 const PORT = process.env.PORT || 3000
-sequelize.authenticate()
-  .then(async () => {
-    console.log('🎯 DB conectada')
-    await sequelize.sync({ alter: false }) // crea tablas si no existen (solo una vez)
-    app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`))
-  })
 
-  .catch(err => console.error("Error DB:", err))
+const startServer = async () => {
+  let retries = 5
+  while (retries > 0) {
+    try {
+      await sequelize.authenticate()
+      console.log('🎯 DB conectada')
+      await sequelize.sync({ alter: false }) // crea tablas si no existen
+      app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`))
+      break
+    } catch (err) {
+      retries--
+      console.error(`❌ Error DB, reintentando en 5 segundos... (${retries} intentos restantes)`)
+      console.error(err.message)
+      await new Promise(res => setTimeout(res, 5000))
+    }
+  }
+  if (retries === 0) {
+    console.error('❌ No se pudo conectar a la DB. Cerrando app.')
+    process.exit(1)
+  }
+}
+
+startServer()
