@@ -47,7 +47,8 @@ const startServer = async () => {
     } catch (err) {
       retries--
       console.error(`❌ Error DB, reintentando en 5 segundos... (${retries} intentos restantes)`)
-      console.error(err.message)
+  console.error(`⛔ ${err.message}`, err)
+
       await new Promise(res => setTimeout(res, 5000))
     }
   }
