@@ -6,7 +6,14 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config()
 }
 
-console.log('🧪 ENV TEST:', process.env.MYSQLHOST)
+// Aquí agrega para debuggear:
+console.log('NODE_ENV:', process.env.NODE_ENV)
+console.log('TODAS variables:', Object.keys(process.env))
+console.log('MYSQLHOST:', process.env.MYSQLHOST)
+console.log('MYSQLPORT:', process.env.MYSQLPORT)
+console.log('MYSQLUSER:', process.env.MYSQLUSER)
+console.log('MYSQLPASSWORD:', process.env.MYSQLPASSWORD)
+console.log('MYSQLDATABASE:', process.env.MYSQLDATABASE)
 
 const {
   MYSQLHOST,
@@ -15,8 +22,6 @@ const {
   MYSQLPASSWORD,
   MYSQLDATABASE
 } = process.env
-
-console.log('TODAS variables entorno:', process.env)
 
 console.log('🔍 VARIABLES DB: ', {
   MYSQLHOST,
