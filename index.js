@@ -1,7 +1,9 @@
+import dotenv from 'dotenv'
+dotenv.config() 
 import express from 'express'
 import cors from 'cors'
 import bodyParser from 'body-parser'
-import dotenv from 'dotenv'
+ 
 import sequelize from './config/database.js'
 import {
   usuarioRoutes,
@@ -15,7 +17,7 @@ import {
 } from './routes/index.js'
 import './models/index.js'
 
-dotenv.config()
+ 
 
 const app = express()
 app.use(cors()) // ESTO HABILITA CORS PARA TODOS LOS ORÍGENES
@@ -41,7 +43,7 @@ const startServer = async () => {
     try {
       await sequelize.authenticate()
       console.log('🎯 DB conectada')
-      await sequelize.sync({ alter: false }) // crea tablas si no existen
+      await sequelize.sync({ alter: force }) // crea tablas si no existen
       app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`))
       break
     } catch (err) {
