@@ -44,7 +44,7 @@ const startServer = async () => {
     try {
       await sequelize.authenticate()
       console.log('🎯 DB conectada')
-      await sequelize.sync({ alter: force }) // crea tablas si no existen
+      await sequelize.sync({ alter: false }) // crea tablas si no existen
       app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`))
       break
     } catch (err) {
