@@ -36,6 +36,7 @@ app.get('/', (req, res) => res.send('API Pos funcionando 🚀'))
 
 // Conectar a la DB y arrancar servidor
 const PORT = process.env.PORT || 3000
+console.log(process.env)
 
 const startServer = async () => {
   let retries = 5
