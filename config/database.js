@@ -42,4 +42,13 @@ const sequelize = new Sequelize(MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD, {
   logging: false,
 })
 
+
+console.log('✅ Variables definidas en Railway:')
+Object.entries(process.env).forEach(([key, value]) => {
+  if (key.startsWith('MYSQL') || key.startsWith('RAILWAY')) {
+    console.log(`${key}: ${value}`)
+  }
+})
+
+
 export default sequelize
