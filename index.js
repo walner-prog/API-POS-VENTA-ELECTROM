@@ -35,8 +35,10 @@ app.get('/', (req, res) => res.send('API Pos funcionando 🚀'))
 // Conectar a la DB y arrancar servidor
 const PORT = process.env.PORT || 3000
 sequelize.authenticate()
-  .then(() => {
+  .then(async () => {
     console.log('🎯 DB conectada')
+    await sequelize.sync({ alter: false }) // crea tablas si no existen (solo una vez)
     app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`))
   })
+
   .catch(err => console.error("Error DB:", err))
