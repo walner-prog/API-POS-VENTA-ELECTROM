@@ -6,7 +6,8 @@ import {
   eliminarUsuarioService, 
   verPerfilService,
   cambiarPasswordService,
-  registrarUsuarioComoAdminService
+  registrarUsuarioComoAdminService,
+  obtenerUsuarioPorIdService
 } from '../services/usuario.service.js';
 
 export const registrarUsuario = async (req, res) => {
@@ -40,6 +41,21 @@ export const listarUsuarios = async (req, res) => {
     console.error("Error en listarUsuarios:", error);
   }
 };
+
+ 
+
+export async function obtenerUsuarioPorIdController(req, res) {
+  try {
+    const { id } = req.params;
+    const usuario = await obtenerUsuarioPorIdService(id);
+    res.json({ success: true, usuario });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Error al obtener usuario'
+    });
+  }
+}
 
 
 export const actualizarUsuario = async (req, res) => {

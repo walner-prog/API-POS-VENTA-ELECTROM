@@ -365,3 +365,21 @@ export async function registrarUsuarioComoAdminService({
     message: `Usuario con rol ${rol.nombre} creado exitosamente`
   };
 }
+
+
+export async function obtenerUsuarioPorIdService(id) {
+  const usuario = await Usuario.findByPk(id, {
+    attributes: ['id', 'nombre', 'email', 'rol_id'],
+    include: {
+      model: Rol,
+      attributes: ['id', 'nombre']
+    }
+  });
+
+  if (!usuario) {
+    throw { status: 404, message: 'Usuario no encontrado' };
+  }
+
+  return usuario;
+}
+ 
