@@ -369,7 +369,7 @@ export async function registrarUsuarioComoAdminService({
 
 export async function obtenerUsuarioPorIdService(id) {
   const usuario = await Usuario.findByPk(id, {
-    attributes: ['id', 'nombre', 'email', 'rol_id'],
+    attributes: ['id', 'nombre', 'email', 'role_id'],
     include: {
       model: Rol,
       attributes: ['id', 'nombre']
