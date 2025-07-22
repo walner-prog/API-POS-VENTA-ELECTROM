@@ -27,15 +27,20 @@ export const loginUsuario = async (req, res) => {
   }
 };
 
+
 export const listarUsuarios = async (req, res) => {
   try {
-    const result = await listarUsuariosService();
+    // Aquí pasarías la página y búsqueda desde query params si quieres paginar bien
+    const pagina = parseInt(req.query.page) || 1;
+    const busqueda = req.query.search || '';
+    const result = await listarUsuariosService(pagina, busqueda);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error interno' });
     console.error("Error en listarUsuarios:", error);
   }
 };
+
 
 export const actualizarUsuario = async (req, res) => {
   try {

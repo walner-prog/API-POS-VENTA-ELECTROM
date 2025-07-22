@@ -244,7 +244,8 @@ export async function listarUsuariosService(pagina = 1, busqueda = '') {
     attributes: ['id', 'nombre', 'email'],
     where,
     limit: limite,
-    offset: offset,
+    offset,
+    distinct: true,      // <-- Agregar esta línea
     include: [
       {
         model: Rol,
