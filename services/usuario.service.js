@@ -227,9 +227,24 @@ export async function verPerfilService(id) {
 }
 
 
-export async function listarUsuariosService() {
-  const usuarios = await Usuario.findAll({
+export async function listarUsuariosService(pagina = 1, busqueda = '') {
+  const limite = 5;
+  const offset = (pagina - 1) * limite;
+
+  const where = busqueda
+    ? {
+        [Op.or]: [
+          { nombre: { [Op.like]: `%${busqueda}%` } },
+          { email: { [Op.like]: `%${busqueda}%` } }
+        ]
+      }
+    : {};
+
+  const { count, rows } = await Usuario.findAndCountAll({
     attributes: ['id', 'nombre', 'email'],
+    where,
+    limit: limite,
+    offset: offset,
     include: [
       {
         model: Rol,
@@ -238,7 +253,7 @@ export async function listarUsuariosService() {
           {
             model: Permiso,
             attributes: ['nombre'],
-            through: { attributes: [] } // elimina los datos de la tabla intermedia
+            through: { attributes: [] }
           }
         ]
       }
@@ -247,9 +262,11 @@ export async function listarUsuariosService() {
 
   return {
     success: true,
-    usuarios
+    usuarios: rows,
+    total: count
   };
 }
+
 
 
 export async function cambiarPasswordService(id, {
