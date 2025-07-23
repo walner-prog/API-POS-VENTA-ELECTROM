@@ -5,8 +5,6 @@ import Rol from '../models/Rol.js';
 import Permiso from '../models/Permiso.js';
 import Caja from '../models/Caja.js';
 import Venta from '../models/Venta.js';
-
- 
 import sequelize from "../config/database.js";
 
 import { Op } from "sequelize"; // o en CommonJS: const { Op } = require('sequelize');
