@@ -231,6 +231,12 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
     limit: limite,
     offset,
     order: [["nombre", "ASC"]],
+    include: [
+      {
+        model: Categoria,
+        attributes: ['nombre'] // 👈 esto incluye el nombre de la categoría
+      }
+    ]
   });
 
   return {
@@ -240,6 +246,7 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
     paginas: Math.ceil(count / limite),
   };
 }
+
 
 export async function restarStockProducto(producto_id, cantidad) {
   const t = await sequelize.transaction();
@@ -268,6 +275,10 @@ export async function restarStockProducto(producto_id, cantidad) {
     throw error;
   }
 }
+
+
+
+
 
 export async function obtenerHistorialProducto(id) {
   const historial = await HistorialProducto.findAll({
