@@ -156,8 +156,17 @@ export async function actualizarUsuarioService(id, {
     };
   }
 
+  // ❌ Si el admin intenta darle rol "admin" a otro usuario
+  if (role_id !== usuario.role_id && role_id === 1 && usuario.id !== usuarioActualId) {
+    throw {
+      status: 403,
+      message: 'No puedes asignar el rol de administrador a otro usuario.'
+    };
+  }
+
   usuario.nombre = nombre || usuario.nombre;
   usuario.email = email || usuario.email;
+  usuario.role_id = role_id;
 
   if (password) {
     usuario.password = await bcrypt.hash(password, 10);
@@ -293,6 +302,24 @@ export async function cambiarPasswordService(id, {
     message: 'Contraseña actualizada'
   };
 }
+
+export async function recuperarCuentaService(email, nuevaPassword) {
+  const usuario = await Usuario.findOne({ where: { email } });
+  if (!usuario) {
+    return { success: false, message: "Correo no registrado" };
+  }
+
+  const hash = await bcrypt.hash(nuevaPassword, 10);
+  usuario.password = hash;
+  await usuario.save();
+
+  return {
+    success: true,
+    message: "Contraseña actualizada correctamente"
+  };
+}
+
+
 
 
 export async function registrarUsuarioComoAdminService({

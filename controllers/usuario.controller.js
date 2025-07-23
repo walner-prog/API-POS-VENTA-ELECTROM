@@ -7,7 +7,8 @@ import {
   verPerfilService,
   cambiarPasswordService,
   registrarUsuarioComoAdminService,
-  obtenerUsuarioPorIdService
+  obtenerUsuarioPorIdService,
+  recuperarCuentaService
 } from '../services/usuario.service.js';
 
 export const registrarUsuario = async (req, res) => {
@@ -113,4 +114,17 @@ export const crearUsuarioDesdeAdmin = async (req, res) => {
       message: error.message || 'Error interno'
     });
   }
+};
+
+export const recuperarCuenta = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await recuperarCuentaService(email);
+    res.json(result);
+  } catch (error) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Error al recuperar cuenta'
+    });
+  } 
 };

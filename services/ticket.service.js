@@ -4,7 +4,6 @@ import { Op } from 'sequelize'
  
 
  
-
 export async function listarTicketsPorCajaService(caja_id) {
   const fechaLimite = new Date()
   fechaLimite.setDate(fechaLimite.getDate() - 30)
@@ -91,6 +90,7 @@ export async function listarTicketsPorCajaService(caja_id) {
     }))
   }
 }
+
 
  
  

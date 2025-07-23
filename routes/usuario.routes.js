@@ -8,7 +8,8 @@ import {
   verPerfil, 
   cambiarPassword,
   crearUsuarioDesdeAdmin,
-  obtenerUsuarioPorIdController
+  obtenerUsuarioPorIdController,
+  recuperarCuenta
 } from '../controllers/usuario.controller.js'
 import authMiddleware from '../middlewares/auth.js'
 import isAdmin from '../middlewares/isAdmin.js'
@@ -19,6 +20,8 @@ const router = express.Router()
 // Público
 router.post('/registro', registrarUsuario)
 router.post('/login', loginUsuario) 
+router.post('/recuperar-cuenta', recuperarCuenta);
+
 
 // Protegido
 router.get('/perfil', authMiddleware, verPerfil)
