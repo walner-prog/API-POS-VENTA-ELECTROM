@@ -3,7 +3,12 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Rol from '../models/Rol.js'; 
 import Permiso from '../models/Permiso.js';
+import Caja from '../models/Caja.js';
+import Venta from '../models/Venta.js';
+
+ 
 import sequelize from "../config/database.js";
+
 import { Op } from "sequelize"; // o en CommonJS: const { Op } = require('sequelize');
 
 
@@ -191,7 +196,6 @@ export async function actualizarUsuarioService(id, {
 }
 
 
- 
 
 export async function eliminarUsuarioService(id) {
   const usuario = await Usuario.findByPk(id, {
@@ -205,13 +209,31 @@ export async function eliminarUsuarioService(id) {
     throw { status: 404, message: 'Usuario no encontrado' };
   }
 
-  const rolNombre = usuario.Rol?.nombre?.toLowerCase(); // por si viene en mayúsculas o con espacios
+  const rolNombre = usuario.Rol?.nombre?.toLowerCase();
 
-  // Bloquear eliminación si es admin o administrador
+  // No permitir eliminar administradores
   if (['admin', 'administrador'].includes(rolNombre)) {
     throw {
       status: 403,
       message: `No se puede eliminar un usuario con rol ${rolNombre}`
+    };
+  }
+
+  // Verificar si tiene cajas asociadas
+  const cajasAsociadas = await Caja.count({ where: { usuario_id: id } });
+  if (cajasAsociadas > 0) {
+    throw {
+      status: 409,
+      message: 'No se puede eliminar este usuario porque tiene cajas asociadas.'
+    };
+  }
+
+  // Verificar si tiene ventas asociadas
+  const ventasAsociadas = await Venta.count({ where: { usuario_id: id } });
+  if (ventasAsociadas > 0) {
+    throw {
+      status: 409,
+      message: 'No se puede eliminar este usuario porque tiene ventas registradas.'
     };
   }
 
