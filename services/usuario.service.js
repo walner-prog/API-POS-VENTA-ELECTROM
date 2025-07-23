@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Rol from '../models/Rol.js'; 
 import Permiso from '../models/Permiso.js';
-import Caja from '../models/Caja.js';
+import Caja from '../models/caja.js';
 import Venta from '../models/Venta.js';
 import sequelize from "../config/database.js";
 
