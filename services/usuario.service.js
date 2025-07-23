@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import Rol from '../models/Rol.js'; 
 import Permiso from '../models/Permiso.js';
 import sequelize from "../config/database.js";
+import { Op } from "sequelize"; // o en CommonJS: const { Op } = require('sequelize');
+
 
 
 const JWT_SECRET = process.env.JWT_SECRET || '5W4W5R9W0D6S4W9W7SD5SSDQRE';
