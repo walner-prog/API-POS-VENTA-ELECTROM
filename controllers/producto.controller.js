@@ -81,17 +81,15 @@ export async function restarStockProducto(req, res) {
 export async function listarProductos(req, res) {
   try {
     const {
-      nombre,
+      busqueda,
       categoria_id,
-      codigo_barra,
       pagina = 1,
       limite = 20
     } = req.query;
 
     const filtros = {
-      nombre,
-      categoria_id,
-      codigo_barra
+      busqueda,
+      categoria_id
     };
 
     const paginacion = {
@@ -105,6 +103,7 @@ export async function listarProductos(req, res) {
     res.status(error.status || 500).json({ message: error.message || 'Error al listar productos' });
   }
 }
+
 
 export async function productosPorVencer(req, res) {
   try {
