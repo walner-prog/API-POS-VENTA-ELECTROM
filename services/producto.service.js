@@ -217,11 +217,21 @@ export async function eliminarProductoService (id) {
   return { message: 'Producto eliminado correctamente' }
 }
 
+ 
+
 export async function listarProductosService(filtros = {}, paginacion = {}) {
   const where = {};
-  if (filtros.nombre) where.nombre = { [Op.like]: `%${filtros.nombre}%` };
-  if (filtros.categoria_id) where.categoria_id = filtros.categoria_id;
-  if (filtros.codigo_barra) where.codigo_barra = filtros.codigo_barra;
+
+  if (filtros.busqueda) {
+    where[Op.or] = [
+      { nombre: { [Op.like]: `%${filtros.busqueda}%` } },
+      { codigo_barra: { [Op.like]: `%${filtros.busqueda}%` } }
+    ];
+  }
+
+  if (filtros.categoria_id) {
+    where.categoria_id = filtros.categoria_id;
+  }
 
   const { pagina = 1, limite = 20 } = paginacion;
   const offset = (pagina - 1) * limite;
@@ -234,7 +244,8 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
     include: [
       {
         model: Categoria,
-        attributes: ['nombre'] // 👈 esto incluye el nombre de la categoría
+        attributes: ['nombre'],
+        as: 'Categorium'  // asegúrate que este alias coincida con tu modelo Sequelize
       }
     ]
   });
@@ -246,6 +257,7 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
     paginas: Math.ceil(count / limite),
   };
 }
+
 
 
 export async function restarStockProducto(producto_id, cantidad) {
