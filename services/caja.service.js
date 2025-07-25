@@ -142,7 +142,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
 
 
-export async function listarCierresService(usuario_id, pagina = 1, limite = 10) {
+export async function listarCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5) {
   const offset = (pagina - 1) * limite;
 
   const hace31Dias = new Date();
@@ -151,7 +151,7 @@ export async function listarCierresService(usuario_id, pagina = 1, limite = 10) 
   const { count, rows } = await Caja.findAndCountAll({
     where: {
       usuario_id,
-      estado: 'cerrada',
+      estado: 'abierta',
       closed_at: {
         [Op.gte]: hace31Dias
       }
@@ -181,6 +181,15 @@ export async function listarCierresService(usuario_id, pagina = 1, limite = 10) 
     ]
   });
 
+  const formatearHora = (hora) => {
+  // Creamos una fecha ficticia con esa hora y la interpretamos en UTC
+  return new Date(`1970-01-01T${hora}Z`).toLocaleTimeString('es-NI', {
+    timeZone: 'America/Managua',
+    hour12: true
+  });
+};
+
+
   // Mapeo con Promise.all para esperar todos los async
   const cierres = await Promise.all(rows.map(async caja => {
     const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
@@ -209,7 +218,7 @@ export async function listarCierresService(usuario_id, pagina = 1, limite = 10) 
       id: caja.id,
       monto_inicial: caja.monto_inicial,
       monto_final: caja.monto_final,
-      hora_apertura: caja.created_at,
+      hora_apertura: formatearHora(caja.hora_apertura),
       hora_cierre: caja.closed_at,
       observacion: caja.observacion,
       total_ventas: totalVentas,
