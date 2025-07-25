@@ -1,6 +1,7 @@
 import sequelize from "../config/database.js";
 import { Op } from 'sequelize'
 import { Caja, Venta, Egreso, DetalleVenta, Producto,Usuario } from '../models/index.js'
+ 
 
 export async function abrirCajaService({ monto_inicial, observacion, nombre }, usuario_id_cajero) {
   const t = await sequelize.transaction();
@@ -228,6 +229,7 @@ export async function listarCierresService(usuario_id, pagina = 1, limite = 10) 
 
 
 
+
 export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 10) {
   const offset = (pagina - 1) * limite;
 
@@ -247,7 +249,11 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     order: [['closed_at', 'DESC']],
     attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at'],
     include: [
-     {
+      {
+        model: Usuario, // Aquí se incluye el modelo Usuario
+        attributes: ['id', 'nombre']
+      },
+      {
         model: Venta,
         where: { estado: 'completada' },
         required: false,
@@ -279,7 +285,8 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
       observacion: caja.observacion,
       total_ventas: totalVentas,
       total_egresos: totalEgresos,
-      dinero_esperado: dineroEsperado
+      dinero_esperado: dineroEsperado,
+      usuario: caja.Usuario // <-- Aquí devolvés el usuario completo
     };
   });
 
