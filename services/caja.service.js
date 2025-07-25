@@ -9,10 +9,12 @@ export async function abrirCajaService({ monto_inicial, observacion, nombre }, u
       throw { status: 400, message: 'Debe indicar un monto inicial para abrir la caja.' };
     }
 
-    if (typeof monto_inicial !== 'number' || isNaN(monto_inicial)) {
-  throw { status: 400, message: "El monto inicial es obligatorio y debe ser un número válido" };
-}
+    // ✅ Convertimos a número antes de validar
+    monto_inicial = Number(monto_inicial);
 
+    if (isNaN(monto_inicial)) {
+      throw { status: 400, message: "El monto inicial es obligatorio y debe ser un número válido" };
+    }
 
     const cajeroUser = await Usuario.findByPk(usuario_id_cajero, { transaction: t });
     if (!cajeroUser) {
