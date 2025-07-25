@@ -252,7 +252,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
 
   const where = {
     usuario_id,
-    estado: 'abierta',
+    estado: 'cerrada',
      closed_at: {
         [Op.gte]: hace31Dias
       }
