@@ -5,7 +5,9 @@ import { Caja, Venta, Egreso, DetalleVenta, Producto,Usuario } from '../models/i
 export async function abrirCajaService({ monto_inicial, observacion, nombre }, usuario_id_cajero) {
   const t = await sequelize.transaction();
   try {
-    
+    if (monto_inicial == null) {
+      throw { status: 400, message: 'Debe indicar un monto inicial para abrir la caja.' };
+    }
 
     if (typeof monto_inicial !== 'number' || isNaN(monto_inicial)) {
   throw { status: 400, message: "El monto inicial es obligatorio y debe ser un número válido" };
