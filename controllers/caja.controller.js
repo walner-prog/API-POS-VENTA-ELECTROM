@@ -11,17 +11,32 @@ import { abrirCajaSchema } from '../validator/AbrirCaja.schema.js';
 
 export const abrirCaja = async (req, res) => {
   try {
-    const { error, value } = abrirCajaSchema.validate(req.body)
+    const { error, value } = abrirCajaSchema.validate(req.body, { abortEarly: false });
+
     if (error) {
-      return res.status(400).json({ success: false, message: 'Datos inválidos', details: error.details })
+      const detalles = error.details.map(e => ({
+        campo: e.context.key,
+        error: e.message
+      }));
+
+      return res.status(400).json({
+        success: false,
+        message: 'Datos inválidos',
+        details: detalles
+      });
     }
 
-    const data = await abrirCajaService(value, req.usuario.id)
-    res.json(data)
+    const data = await abrirCajaService(value, req.usuario.id);
+    res.json(data);
+    
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' })
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Error interno del servidor'
+    });
   }
-}
+};
+
 
 
 export const cerrarCaja = async (req, res) => {
