@@ -11,13 +11,15 @@ import { abrirCajaSchema } from '../validator/AbrirCaja.schema.js';
 
 export const abrirCaja = async (req, res) => {
   try {
-   // const { error, value } = abrirCajaSchema.validate(req.body, { abortEarly: false });
+    const { monto_inicial, observacion, nombre } = req.body;
+    const usuario_id_cajero = req.usuario.id;
 
-     
+    const data = await abrirCajaService(
+      { monto_inicial, observacion, nombre },
+      usuario_id_cajero
+    );
 
-    const data = await abrirCajaService( req.usuario.id);
     res.json(data);
-    
   } catch (error) {
     res.status(error.status || 500).json({
       success: false,
