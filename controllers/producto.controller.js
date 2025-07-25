@@ -30,20 +30,17 @@ export async function crearProducto(req, res) {
 
 export async function editarProducto(req, res) {
   try {
-    const { error, value } = editarProductoSchema.validate(req.body, { abortEarly: false })
-    if (error) {
-      return res.status(400).json({
-        message: 'Error de validación',
-        errors: error.details.map(d => ({ field: d.path[0], message: d.message }))
-      })
-    }
+    const data = req.body;
 
-    const producto = await productoService.editarProductoService(req.params.id, value)
-    res.json(producto)
+    // Aquí podrías validar manualmente si es necesario, pero en este caso se omite
+    const producto = await productoService.editarProductoService(req.params.id, data);
+
+    res.json(producto);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message || 'Error al editar producto' })
+    res.status(error.status || 500).json({ message: error.message || 'Error al editar producto' });
   }
 }
+
 
 
 export async function eliminarProducto(req, res) {
