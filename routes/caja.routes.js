@@ -14,8 +14,7 @@ const router = express.Router()
 router.post('/abrir', authMiddleware, abrirCaja)
 router.post('/cerrar/:id', authMiddleware, cerrarCaja)
 router.get('/cierres', authMiddleware, listarCierres)
-router.get('/actual', authMiddleware, cajaActual)
 router.get('/abierta', authMiddleware, verCajaAbierta)
 router.get('/historial', authMiddleware, historialCierres)
-
+router.get('/actual', authMiddleware, cajaActual)
 export default router

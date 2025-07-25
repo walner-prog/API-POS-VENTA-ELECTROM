@@ -47,17 +47,6 @@ export const listarCierres = async (req, res) => {
 };
 
 
-
-export const cajaActual = async (req, res) => {
-  try {
-    const data = await cajaActualService(req.usuario.id)
-    res.json(data)
-  } catch (error) {
-  //  console.log("Error en cajaActual:", error)
-    res.status(500).json({ success: false, message: 'Error interno' })
-  }
-}
-
 export const verCajaAbierta = async (req, res) => {
   try {
     const usuario_id = req.usuario.id;
@@ -81,3 +70,13 @@ export const historialCierres = async (req, res) => {
     res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' });
   }
 };
+
+export const cajaActual = async (req, res) => {
+  try {
+    const data = await cajaActualService(req.usuario.id)
+    res.json(data)
+  } catch (error) {
+  //  console.log("Error en cajaActual:", error)
+    res.status(500).json({ success: false, message: 'Error interno' })
+  }
+}

@@ -9,6 +9,11 @@ export async function abrirCajaService({ monto_inicial, observacion, nombre }, u
       throw { status: 400, message: 'Debe indicar un monto inicial para abrir la caja.' };
     }
 
+    if (typeof monto_inicial !== 'number' || isNaN(monto_inicial)) {
+  throw { status: 400, message: "El monto inicial es obligatorio y debe ser un número válido" };
+}
+
+
     const cajeroUser = await Usuario.findByPk(usuario_id_cajero, { transaction: t });
     if (!cajeroUser) {
       throw {
@@ -220,47 +225,6 @@ export async function listarCierresService(usuario_id, pagina = 1, limite = 10) 
 
 
 
-export async function cajaActualService(usuario_id) {
-  const caja = await Caja.findOne({
-    where: { usuario_id, estado: 'abierta' },
-    include: [
-      {
-        model: Venta,
-        where: { estado: 'completada' },
-        required: false,
-        attributes: ['id', 'total', 'estado']
-      },
-      {
-        model: Egreso,
-        where: { estado: 'activo' },
-        required: false,
-        attributes: ['id', 'monto', 'estado']
-      }
-      
-    ]
-    
-  });
- 
-  if (!caja) throw { status: 404, message: 'No hay caja abierta para este usuario.' };
-
-  // Aquí usamos la propiedad que te devuelve Sequelize, que es singular
-  const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
-  const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-  const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
-
-  return {
-    success: true,
-    caja: {
-      id: caja.id,
-      monto_inicial: caja.monto_inicial,
-      total_ventas: totalVentas,
-      total_egresos: totalEgresos,
-      dinero_esperado: dineroEsperado,
-      hora_apertura: caja.created_at
-    }
-  };
-}
-
 
 export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 10) {
   const offset = (pagina - 1) * limite;
@@ -328,6 +292,49 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
 
 
 export async function verCajaAbiertaService(usuario_id) {
+  const caja = await Caja.findOne({
+    where: { usuario_id, estado: 'abierta' },
+    include: [
+      {
+        model: Venta,
+        where: { estado: 'completada' },
+        required: false,
+        attributes: ['id', 'total', 'estado']
+      },
+      {
+        model: Egreso,
+        where: { estado: 'activo' },
+        required: false,
+        attributes: ['id', 'monto', 'estado']
+      }
+      
+    ]
+    
+  });
+ 
+  if (!caja) throw { status: 404, message: 'No hay caja abierta para este usuario.' };
+
+  // Aquí usamos la propiedad que te devuelve Sequelize, que es singular
+  const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+  const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
+  const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+
+  return {
+    success: true,
+    caja: {
+      id: caja.id,
+      monto_inicial: caja.monto_inicial,
+      total_ventas: totalVentas,
+      total_egresos: totalEgresos,
+      dinero_esperado: dineroEsperado,
+      hora_apertura: caja.created_at
+    }
+  };
+}
+
+
+
+export async function cajaActualService(usuario_id) {
   const caja = await Caja.findOne({
     where: { usuario_id, estado: 'abierta' },
     include: [
