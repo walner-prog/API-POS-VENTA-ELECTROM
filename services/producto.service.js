@@ -176,6 +176,7 @@ if (data.stock <= 0) {
       'categoria_id',
       'precio_compra',
       'precio_venta',
+      'stock',
       'unidad_medida',
       'presentacion'
     ]
