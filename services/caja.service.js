@@ -151,7 +151,7 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
   const { count, rows } = await Caja.findAndCountAll({
     where: {
       usuario_id,
-      estado: 'abierta',
+      estado: 'cerrada',
       closed_at: {
         [Op.gte]: hace31Dias
       }
@@ -252,7 +252,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
 
   const where = {
     usuario_id,
-    estado: 'cerrada',
+    estado: 'abierta',
      closed_at: {
         [Op.gte]: hace31Dias
       }
