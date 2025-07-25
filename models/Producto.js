@@ -38,18 +38,7 @@ const Producto = sequelize.define('Producto', {
     type: DataTypes.STRING(50),
     allowNull: true
   },
-  venta_mayoreo: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  precio_mayoreo: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true
-  },
-  minimo_mayoreo: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  }
+  
 }, {
   tableName: 'productos',
   timestamps: true,

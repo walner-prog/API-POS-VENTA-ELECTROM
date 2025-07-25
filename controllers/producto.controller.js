@@ -105,6 +105,22 @@ export async function listarProductos(req, res) {
 }
 
 
+ 
+
+export async function obtenerProductoPorIdController(req, res) {
+  try {
+    const { id } = req.params;
+    const producto = await productoService.obtenerProductoPorIdService(id);
+    res.json(producto);
+  } catch (error) {
+    res.status(error.status || 500).json({
+      message: error.message || 'Error al obtener producto'
+    });
+  }
+}
+
+
+
 export async function productosPorVencer(req, res) {
   try {
     const diasAviso = req.query.diasAviso ? Number(req.query.diasAviso) : 7;

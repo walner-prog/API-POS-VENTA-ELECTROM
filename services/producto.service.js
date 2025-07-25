@@ -290,6 +290,32 @@ export async function restarStockProducto(producto_id, cantidad) {
 
 
 
+export async function obtenerProductoPorIdService(id) {
+  const producto = await Producto.findByPk(id, {
+    attributes: [
+      'id',
+      'nombre',
+      'codigo_barra',
+      'precio_compra',
+      'precio_venta',
+      'stock',
+      'unidad_medida',
+      'presentacion',
+      'categoria_id'
+    ],
+    include: {
+      model: Categoria,
+      attributes: ['id', 'nombre']
+    }
+  });
+
+  if (!producto) {
+    throw { status: 404, message: 'Producto no encontrado' };
+  }
+
+  return producto;
+}
+
 
 
 export async function obtenerHistorialProducto(id) {
