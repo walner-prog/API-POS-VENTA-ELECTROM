@@ -37,6 +37,7 @@ const sequelize = new Sequelize(MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD, {
   port: Number(MYSQLPORT),
   dialect: 'mysql',
   logging: false,
+   timezone: '-06:00'
 })
 
 export default sequelize
