@@ -6,7 +6,7 @@ export const abrirCajaSchema = Joi.object({
     .required()
     .messages({
       'number.base': 'El monto inicial debe ser un número.',
-      'number.positive': 'El monto inicial debe ser un número positivo mayor que cero.',
+      //'number.positive': 'El monto inicial debe ser un número positivo mayor que cero.',
       'any.required': 'El monto inicial es obligatorio.'
     }),
   observacion: Joi.string()
@@ -22,7 +22,7 @@ export const abrirCajaSchema = Joi.object({
       'string.base': 'El nombre debe ser texto.',
       'string.min': 'El nombre debe tener al menos {#limit} caracteres.',
       'string.max': 'El nombre no puede exceder {#limit} caracteres.',
-      'any.required': 'El nombre es obligatorio.'
+      //'any.required': 'El nombre es obligatorio.'
     })
 })
 
