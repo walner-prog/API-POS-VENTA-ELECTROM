@@ -160,6 +160,11 @@ export async function listarCierresService(usuario_id, pagina = 1, limite = 10) 
     limit: parseInt(limite),
     offset: parseInt(offset),
     include: [
+
+       {
+        model: Usuario, // Aquí se incluye el modelo Usuario
+        attributes: ['id', 'nombre']
+      },
   
       {
         model: Venta,
@@ -230,12 +235,18 @@ export async function listarCierresService(usuario_id, pagina = 1, limite = 10) 
 
 
 
-export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 10) {
+export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5) {
   const offset = (pagina - 1) * limite;
+
+    const hace31Dias = new Date();
+    hace31Dias.setDate(hace31Dias.getDate() - 31);
 
   const where = {
     usuario_id,
-    estado: 'cerrada'
+    estado: 'cerrada',
+     closed_at: {
+        [Op.gte]: hace31Dias
+      }
   };
 
   if (desde && hasta) {
@@ -247,7 +258,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
   const { count, rows: cajas } = await Caja.findAndCountAll({
     where,
     order: [['closed_at', 'DESC']],
-    attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at'],
+    attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'hora_apertura', 'observacion', 'estado'],
     include: [
       {
         model: Usuario, // Aquí se incluye el modelo Usuario
@@ -296,7 +307,8 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     historial,
     total: count,
     pagina: parseInt(pagina),
-    paginas: Math.ceil(count / limite)
+    paginas: Math.ceil(count / limite),
+    message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined
   };
 }
 

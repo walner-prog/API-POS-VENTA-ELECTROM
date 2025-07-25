@@ -259,7 +259,7 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
     where.categoria_id = filtros.categoria_id;
   }
 
-  const { pagina = 1, limite = 20 } = paginacion;
+  const { pagina = 1, limite = 10 } = paginacion;
   const offset = (pagina - 1) * limite;
 
   const { count, rows } = await Producto.findAndCountAll({
