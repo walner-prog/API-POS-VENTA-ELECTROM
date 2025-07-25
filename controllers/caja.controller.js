@@ -11,22 +11,11 @@ import { abrirCajaSchema } from '../validator/AbrirCaja.schema.js';
 
 export const abrirCaja = async (req, res) => {
   try {
-    const { error, value } = abrirCajaSchema.validate(req.body, { abortEarly: false });
+   // const { error, value } = abrirCajaSchema.validate(req.body, { abortEarly: false });
 
-    if (error) {
-      const detalles = error.details.map(e => ({
-        campo: e.context.key,
-        error: e.message
-      }));
+     
 
-      return res.status(400).json({
-        success: false,
-        message: 'Datos inválidos',
-        details: detalles
-      });
-    }
-
-    const data = await abrirCajaService(value, req.usuario.id);
+    const data = await abrirCajaService( req.usuario.id);
     res.json(data);
     
   } catch (error) {
