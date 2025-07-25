@@ -281,6 +281,15 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     offset: parseInt(offset)
   });
 
+  const formatearHora = (hora) => {
+  // Creamos una fecha ficticia con esa hora y la interpretamos en UTC
+  return new Date(`1970-01-01T${hora}Z`).toLocaleTimeString('es-NI', {
+    timeZone: 'America/Managua',
+    hour12: true
+  });
+};
+
+
   const historial = cajas.map(caja => {
     const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
     const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
@@ -290,7 +299,8 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
       id: caja.id,
       monto_inicial: caja.monto_inicial,
       monto_final: caja.monto_final,
-      hora_apertura: caja.hora_apertura,
+      hora_apertura: formatearHora(caja.hora_apertura),
+
       closed_at: caja.closed_at,
       estado: caja.estado,
       hora_cierre: caja.closed_at,
