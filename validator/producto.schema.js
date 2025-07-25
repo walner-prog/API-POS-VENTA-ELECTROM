@@ -7,7 +7,7 @@ export const crearProductoSchema = Joi.object({
   categoria_id: Joi.number().integer().required(),
   precio_compra: Joi.number().precision(2).required(),
   precio_venta: Joi.number().precision(2).required(),
- // stock: Joi.number().integer().min(0).required(),
+  stock: Joi.number().integer().min(0).required(),
   unidad_medida: Joi.string().max(20).optional().allow(null, ''),
   presentacion: Joi.string().max(50).optional().allow(null, ''),
   
