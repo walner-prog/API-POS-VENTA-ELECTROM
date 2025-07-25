@@ -138,6 +138,30 @@ export async function editarProductoService(id, data) {
       }
     }
 
+
+    if (typeof precio_compra !== 'number' || precio_compra <= 0) {
+      throw { status: 400, message: 'El precio de compra debe ser un número mayor a cero.' }
+    }
+
+    if (typeof precio_venta !== 'number' || precio_venta <= 0) {
+      throw { status: 400, message: 'El precio de venta debe ser un número mayor a cero.' }
+    }
+
+    if (precio_venta <= precio_compra) {
+      throw {
+        status: 400,
+        message: 'El precio de venta debe ser mayor que el precio de compra.'
+      }
+    }
+
+    if (stock <= 0) {
+      throw {
+        status: 400,
+        message: 'El stock debe ser mayor que cero.'
+      }
+    }
+
+
     // Valores previos para monitoreo de cambios
     const valoresAnteriores = {
       precio_compra: producto.precio_compra,
