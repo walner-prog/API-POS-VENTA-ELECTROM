@@ -99,11 +99,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
     });
 
 
-       const fechaFormateada = now.toLocaleString('es-NI', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-      hour12: true
-    });
+    
 
     const total_precio_compra = detalles.reduce((acc, d) => acc + parseFloat(d.cantidad) * parseFloat(d.Producto.precio_compra), 0);
     const total_precio_venta = detalles.reduce((acc, d) => acc + parseFloat(d.total_linea), 0);
@@ -115,9 +111,19 @@ export async function cerrarCajaService(caja_id, usuario_id) {
     caja.estado = 'cerrada';
     caja.closed_at = new Date();
 
+        const now = new Date();
+    const hora_apertura = now.toTimeString().split(' ')[0];
+    
+
     await caja.save({ transaction: t });
 
     await t.commit();
+
+       const fechaFormateada = now.toLocaleString('es-NI', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+      hour12: true
+    });
 
     return {
       success: true,
