@@ -6,6 +6,12 @@ import { Caja, Venta, Egreso, DetalleVenta, Producto,Usuario } from '../models/i
 export async function abrirCajaService({ monto_inicial, observacion, nombre }, usuario_id_cajero) {
   const t = await sequelize.transaction();
   try {
+
+      // monto debe ser mayor a 0
+    if (monto_inicial <= 0) {
+      throw { status: 400, message: 'El monto inicial debe ser mayor a 0.' };
+    }
+
     if (monto_inicial == null) {
       throw { status: 400, message: 'Debe indicar un monto inicial para abrir la caja.' };
     }
