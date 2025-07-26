@@ -5,7 +5,8 @@ import {
   listarCierres,
   cajaActual,
   verCajaAbierta,
-  historialCierres
+  historialCierres,
+  
 } from '../controllers/caja.controller.js'
 import authMiddleware from '../middlewares/auth.js'
 

@@ -7,7 +7,7 @@ import {
   historialCierresService
 } from '../services/caja.service.js'
  
-import { abrirCajaSchema } from '../validator/AbrirCaja.schema.js';
+ 
 
 export const abrirCaja = async (req, res) => {
   try {
@@ -52,6 +52,22 @@ export const listarCierres = async (req, res) => {
   }
 };
 
+export const verCajaAbiertaId = async (req, res) => {
+  try {
+    const usuario_id = req.usuario.id; // lo provee authMiddleware
+    const data = await verCajaAbiertaService(usuario_id);
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Error al obtener caja abierta'
+    });
+  }
+};
+
+
+
+
 
 export const verCajaAbierta = async (req, res) => {
   try {
@@ -63,6 +79,8 @@ export const verCajaAbierta = async (req, res) => {
     res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' });
   }
 }
+
+
 
 export const historialCierres = async (req, res) => {
   try {

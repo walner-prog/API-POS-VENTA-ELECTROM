@@ -75,8 +75,6 @@ export async function abrirCajaService({ monto_inicial, observacion, nombre }, u
 
 
 
-
-
 export async function cerrarCajaService(caja_id, usuario_id) {
   const t = await sequelize.transaction();
 
@@ -100,6 +98,13 @@ export async function cerrarCajaService(caja_id, usuario_id) {
       transaction: t
     });
 
+
+       const fechaFormateada = now.toLocaleString('es-NI', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+      hour12: true
+    });
+
     const total_precio_compra = detalles.reduce((acc, d) => acc + parseFloat(d.cantidad) * parseFloat(d.Producto.precio_compra), 0);
     const total_precio_venta = detalles.reduce((acc, d) => acc + parseFloat(d.total_linea), 0);
     const ganancia = total_precio_venta - total_precio_compra;
@@ -118,17 +123,17 @@ export async function cerrarCajaService(caja_id, usuario_id) {
       success: true,
       message: 'Caja cerrada correctamente.',
       cierre: {
-        monto_inicial: caja.monto_inicial,
-        total_ventas: totalVentas,
-        total_egresos: totalEgresos,
-        total_precio_compra,
-        total_precio_venta,
-        ganancia,
-        cantidad_tickets: ventas.length,
-        dinero_final: dineroFinal,
-        hora_apertura: caja.hora_apertura,
-        hora_cierre: caja.closed_at,
-        usuario_id
+      monto_inicial: caja.monto_inicial,
+      total_ventas: totalVentas,
+      total_egresos: totalEgresos,
+      total_precio_compra,
+      total_precio_venta,
+      ganancia,
+      cantidad_tickets: ventas.length,
+      dinero_final: dineroFinal,
+      hora_apertura: fechaFormateada,
+      hora_cierre: caja.closed_at,
+      usuario_id
       }
     };
   } catch (error) {
@@ -136,8 +141,6 @@ export async function cerrarCajaService(caja_id, usuario_id) {
     throw error;
   }
 }
-
-
 
 
 
