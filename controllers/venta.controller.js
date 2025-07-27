@@ -1,11 +1,12 @@
 import { cancelarVentaService } from '../services/venta/cancelarVenta.service.js';
 import { crearVentaService } from '../services/venta/crearVenta.service.js';
+import { obtenerDetalleVentaService } from '../services/venta/listarVentaId.js';
 import { validarVenta, validarCancelacion } from '../validator/venta.validacion.js';
 import logger from "../config/logger.js";
-
+  //  await validarVenta(req.body);
 export const crearVenta = async (req, res) => {
   try {
-  //  await validarVenta(req.body);
+
     const data = await crearVentaService(req.body, req.usuario.id);
 
   //  logger.info(`✅ Venta creada exitosamente por el usuario ${req.usuario.id} - ID Venta: ${data.venta_id}`);
@@ -18,6 +19,17 @@ export const crearVenta = async (req, res) => {
     });
   }
 };
+
+export async function obtenerDetalleVentaPorId(req, res) {
+  try {
+    const id = req.params.id;
+    const venta = await obtenerDetalleVentaService(id);
+    res.json(venta);
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message });
+  }
+}
+
 
 export const cancelarVenta = async (req, res) => {
   try {
