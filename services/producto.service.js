@@ -349,8 +349,8 @@ export async function obtenerProductoPorIdService(id) {
 export async function obtenerProductosTodos() {
  
   const productos = await Producto.findAll({
-    attributes: ['id', 'nombre', 'codigo_barra', 'precio_venta', 'stock'],
-    order: [['nombre', 'ASC']]
+    attributes: ['id', 'nombre', 'codigo_barra', 'precio_compra', 'precio_venta', 'stock','unidad_medida', 'presentacion'],
+    order: [['id', 'ASC']]
   });
 
   return productos;
