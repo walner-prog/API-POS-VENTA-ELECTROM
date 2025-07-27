@@ -11,11 +11,8 @@ export async function obtenerDetalleVentaService(id) {
         include: [
           {
             model: Producto
-          },
-          {
-            model: DetalleVentaLote,
-             
           }
+         
         ]
       },
       {
