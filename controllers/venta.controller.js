@@ -5,7 +5,7 @@ import logger from "../config/logger.js";
 
 export const crearVenta = async (req, res) => {
   try {
-    await validarVenta(req.body);
+  //  await validarVenta(req.body);
     const data = await crearVentaService(req.body, req.usuario.id);
 
   //  logger.info(`✅ Venta creada exitosamente por el usuario ${req.usuario.id} - ID Venta: ${data.venta_id}`);
