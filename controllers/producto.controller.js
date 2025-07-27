@@ -137,3 +137,13 @@ export async function obtenerHistorialProducto(req, res) {
     res.status(error.status || 500).json({ message: error.message || 'Error al obtener historial de precios' });
   }  
 }
+
+export async function obtenerProductos(req, res) {
+
+  try {
+    const productos = await productoService.obtenerProductosTodos();
+    res.json(productos);
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message || 'Error al obtener productos' });
+  }
+}

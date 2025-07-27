@@ -43,7 +43,7 @@ Ticket.belongsTo(Venta, { foreignKey: 'venta_id' });
 
 Usuario.hasMany(Ticket, { foreignKey: 'usuario_id' })
 Ticket.belongsTo(Usuario, { foreignKey: 'usuario_id' })
-
+ 
 Caja.hasMany(Egreso, { foreignKey: 'caja_id' })
 Egreso.belongsTo(Caja, { foreignKey: 'caja_id' })
 

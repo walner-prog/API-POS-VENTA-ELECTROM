@@ -344,11 +344,15 @@ export async function obtenerProductoPorIdService(id) {
 
 
 
-export async function obtenerHistorialProducto(id) {
-  const historial = await HistorialProducto.findAll({
-    where: { producto_id: id },
-    order: [['createdAt', 'DESC']]
+ 
+
+export async function obtenerProductosTodos() {
+ 
+  const productos = await Producto.findAll({
+    attributes: ['id', 'nombre', 'codigo_barra', 'precio_venta', 'stock'],
+    order: [['nombre', 'ASC']]
   });
-  return historial;
+
+  return productos;
 }
 
