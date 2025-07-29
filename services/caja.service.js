@@ -266,16 +266,16 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     hace31Dias.setDate(hace31Dias.getDate() - 31);
 
   const where = {
-    usuario_id,
-    estado: 'cerrada' || 'abierta',
-     closed_at: {
-        [Op.gte]: hace31Dias
-      }
-  };
-
-   if (estado && (estado === 'abierta' || estado === 'cerrada')) {
-    where.estado = estado;
+  usuario_id,
+  closed_at: {
+    [Op.gte]: hace31Dias
   }
+};
+
+if (estado === 'abierta' || estado === 'cerrada') {
+  where.estado = estado;
+}
+
 
   if (desde && hasta) {
     where.closed_at = {
