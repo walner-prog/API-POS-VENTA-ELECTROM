@@ -277,11 +277,20 @@ if (estado === 'abierta' || estado === 'cerrada') {
 }
 
 
-  if (desde && hasta) {
-    where.closed_at = {
-      [Op.between]: [new Date(desde), new Date(hasta)]
-    };
-  }
+ if (desde && hasta) {
+  where.closed_at = {
+    [Op.between]: [new Date(desde), new Date(hasta)]
+  };
+} else if (desde) {
+  where.closed_at = {
+    [Op.gte]: new Date(desde)
+  };
+} else if (hasta) {
+  where.closed_at = {
+    [Op.lte]: new Date(hasta)
+  };
+}
+
 
   const { count, rows: cajas } = await Caja.findAndCountAll({
     where,
