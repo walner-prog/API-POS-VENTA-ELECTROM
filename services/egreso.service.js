@@ -94,6 +94,8 @@ export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
   egreso.tipo = datos.tipo;
   egreso.referencia = datos.referencia || null;
   egreso.monto = nuevoMonto;
+  egreso.descripcion = datos.descripcion || null;
+ 
   await egreso.save();
 
   return {
@@ -113,7 +115,7 @@ export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, lim
 
  const where = {
   caja_id,
-  estado: 'activo',
+  estado: { [Op.or]: ['activo', 'anulado'] },
   created_at: { [Op.gte]: fechaLimite }
 }
 
