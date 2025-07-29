@@ -6,7 +6,7 @@ import {
   cajaActual,
   verCajaAbierta,
   historialCierres,
-  
+  obtenerCajasUltimos31DiasController
 } from '../controllers/caja.controller.js'
 import authMiddleware from '../middlewares/auth.js'
 
@@ -16,6 +16,7 @@ router.post('/abrir', authMiddleware, abrirCaja)
 router.post('/cerrar/:id', authMiddleware, cerrarCaja)
 router.get('/cierres', authMiddleware, listarCierres)
 router.get('/abierta', authMiddleware, verCajaAbierta)
+ 
 router.get('/historial', authMiddleware, historialCierres)
 router.get('/actual', authMiddleware, cajaActual)
 export default router

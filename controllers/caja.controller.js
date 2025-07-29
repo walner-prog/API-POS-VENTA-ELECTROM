@@ -4,7 +4,8 @@ import {
   listarCierresService,
   cajaActualService,
   verCajaAbiertaService,
-  historialCierresService
+  historialCierresService,
+  obtenerCajasUltimos31DiasService
 } from '../services/caja.service.js'
  
  
@@ -80,7 +81,7 @@ export const verCajaAbierta = async (req, res) => {
   }
 }
 
-
+ 
 
 export const historialCierres = async (req, res) => {
   try {

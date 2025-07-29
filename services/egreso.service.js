@@ -124,6 +124,8 @@ export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, lim
     where.tipo = { [Op.like]: `%${tipo}%` } // filtro flexible
   }
 
+ 
+
   const { count, rows } = await Egreso.findAndCountAll({
     where,
     order: [['created_at', 'DESC']],

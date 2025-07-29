@@ -388,6 +388,8 @@ export async function verCajaAbiertaService(usuario_id) {
   };
 }
 
+ 
+
 
 
 export async function cajaActualService(usuario_id) {
