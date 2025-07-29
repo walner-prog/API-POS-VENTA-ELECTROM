@@ -41,17 +41,6 @@ export const cerrarCaja = async (req, res) => {
   }
 }
 
-export const listarCierres = async (req, res) => {
-  try {
-    const usuario_id = req.usuario.id;
-    const { pagina = 1, limite = 10, desde, hasta } = req.query;
-
-    const data = await listarCierresService(usuario_id, pagina, limite, desde, hasta);
-    res.json(data);
-  } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' });
-  }
-};
 
 export const verCajaAbiertaId = async (req, res) => {
   try {
@@ -68,8 +57,6 @@ export const verCajaAbiertaId = async (req, res) => {
 
 
 
-
-
 export const verCajaAbierta = async (req, res) => {
   try {
     const usuario_id = req.usuario.id;
@@ -81,20 +68,33 @@ export const verCajaAbierta = async (req, res) => {
   }
 }
 
- 
 
 export const historialCierres = async (req, res) => {
   try {
     const usuario_id = req.usuario.id;
-    const { desde, hasta, pagina = 1, limite = 10 } = req.query;
+    const { desde, hasta, pagina = 1, limite = 10, estado } = req.query;
 
-    const data = await historialCierresService(usuario_id, desde, hasta, pagina, limite);
+    const data = await historialCierresService(usuario_id, desde, hasta, pagina, limite, estado);
 
     res.json(data);
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' });
   }
 };
+
+
+export const listarCierres = async (req, res) => {
+  try {
+    const usuario_id = req.usuario.id;
+    const { pagina = 1, limite = 10, desde, hasta } = req.query;
+
+    const data = await listarCierresService(usuario_id, pagina, limite, desde, hasta);
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' });
+  }
+};
+
 
 export const cajaActual = async (req, res) => {
   try {

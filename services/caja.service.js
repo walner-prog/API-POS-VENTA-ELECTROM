@@ -259,7 +259,7 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 
 
 
-export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5) {
+export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estado) {
   const offset = (pagina - 1) * limite;
 
     const hace31Dias = new Date();
@@ -272,6 +272,10 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         [Op.gte]: hace31Dias
       }
   };
+
+   if (estado && (estado === 'abierta' || estado === 'cerrada')) {
+    where.estado = estado;
+  }
 
   if (desde && hasta) {
     where.closed_at = {
@@ -389,8 +393,6 @@ export async function verCajaAbiertaService(usuario_id) {
 }
 
  
- 
-
 
 export async function cajaActualService(usuario_id) {
   const caja = await Caja.findOne({
