@@ -5,7 +5,7 @@ import {
   cajaActualService,
   verCajaAbiertaService,
   historialCierresService,
-  obtenerCajasUltimos31DiasService
+ 
 } from '../services/caja.service.js'
  
  

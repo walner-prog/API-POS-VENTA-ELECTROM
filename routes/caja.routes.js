@@ -6,7 +6,7 @@ import {
   cajaActual,
   verCajaAbierta,
   historialCierres,
-  obtenerCajasUltimos31DiasController
+  
 } from '../controllers/caja.controller.js'
 import authMiddleware from '../middlewares/auth.js'
 
