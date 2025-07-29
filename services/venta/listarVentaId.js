@@ -1,7 +1,5 @@
-import sequelize from "../../config/database.js";
-import { Venta, DetalleVenta, Ticket,Producto } from "../../models/index.js";
-
  
+import { Venta, DetalleVenta, Ticket,Producto } from "../../models/index.js";
 
 export async function obtenerDetalleVentaService(id) {
   const venta = await Venta.findByPk(id, {

@@ -43,6 +43,65 @@ export const crearEgresoService = async (datos, usuario_id) => {
   return nuevo
 }
 
+export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
+  // 1. Buscar el egreso activo que se quiere editar
+  const egreso = await Egreso.findOne({
+    where: { id: egreso_id, estado: 'activo' }
+  });
+
+  if (!egreso) {
+    throw { status: 404, message: 'Egreso no encontrado o anulado' };
+  }
+
+  // 2. Verificar que la caja esté abierta y fue abierta por el mismo usuario
+  const caja = await Caja.findOne({
+    where: {
+      id: egreso.caja_id,
+      estado: 'abierta',
+      abierto_por: usuario_id
+    }
+  });
+
+  if (!caja) {
+    throw { status: 400, message: 'Caja no encontrada o cerrada por otro usuario' };
+  }
+
+  // 3. Calcular monto disponible (excluyendo el egreso actual)
+  const totalVentas = await Venta.sum('total', {
+    where: { caja_id: caja.id, estado: 'completada' }
+  }) || 0;
+
+  const totalEgresos = await Egreso.sum('monto', {
+    where: {
+      caja_id: caja.id,
+      estado: 'activo',
+      id: { [Op.ne]: egreso.id } // excluye el egreso actual
+    }
+  }) || 0;
+
+  const montoDisponible = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+  const nuevoMonto = parseFloat(datos.monto);
+
+  if (nuevoMonto > montoDisponible) {
+    const faltante = (nuevoMonto - montoDisponible).toFixed(2);
+    throw {
+      status: 400,
+      message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(2)}, faltan $${faltante} para cubrir este egreso.`
+    };
+  }
+
+  // 4. Actualizar egreso
+  egreso.tipo = datos.tipo;
+  egreso.referencia = datos.referencia || null;
+  egreso.monto = nuevoMonto;
+  await egreso.save();
+
+  return {
+    success: true,
+    message: 'Egreso actualizado correctamente',
+    egreso
+  };
+};
 
 
 

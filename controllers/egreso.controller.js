@@ -1,7 +1,8 @@
 import {
   crearEgresoService,
   listarEgresosPorCajaService,
-  anularEgresoService
+  anularEgresoService,
+  editarEgresoService
 } from '../services/egreso.service.js'
 
 export const crearEgreso = async (req, res) => {
@@ -13,6 +14,24 @@ export const crearEgreso = async (req, res) => {
     res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' })
   }
 }
+
+export const actualizarEgreso = async (req, res) => {
+  try {
+    const egreso_id = req.params.id
+    const datos = req.body
+    const usuario_id = req.usuario.id
+
+    const resultado = await editarEgresoService(egreso_id, datos, usuario_id)
+
+    res.json(resultado)
+  } catch (error) {
+    console.error(error)
+    res.status(error.status || 500).json({
+      message: error.message || 'Error al actualizar el egreso'
+    })
+  }
+}
+
 export const listarEgresosPorCaja = async (req, res) => {
   try {
     const { caja_id } = req.params
@@ -38,7 +57,8 @@ export const listarEgresosPorCaja = async (req, res) => {
 
 export const anularEgreso = async (req, res) => {
   try {
-    const egreso_id = req.params.egreso_id
+    const egreso_id = req.params.id;
+
     const usuario_id = req.usuario.id  // Suponiendo que tienes middleware de auth que pone el usuario en req.usuario
 
     const resultado = await anularEgresoService(egreso_id, usuario_id)
