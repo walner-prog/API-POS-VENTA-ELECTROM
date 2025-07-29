@@ -57,7 +57,8 @@ export const listarEgresosPorCaja = async (req, res) => {
 
 export const anularEgreso = async (req, res) => {
   try {
-    const egreso_id = req.params.id;
+   const egreso_id = req.params.egreso_id;
+
 
     const usuario_id = req.usuario.id  // Suponiendo que tienes middleware de auth que pone el usuario en req.usuario
 
