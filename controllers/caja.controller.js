@@ -72,7 +72,7 @@ export const verCajaAbierta = async (req, res) => {
 export const historialCierres = async (req, res) => {
   try {
     const usuario_id = req.usuario.id;
-    const { desde, hasta, pagina = 1, limite = 10, estado } = req.query;
+    const { desde, hasta, pagina = 1, limite = 5, estado } = req.query;
 
     const data = await historialCierresService(usuario_id, desde, hasta, pagina, limite, estado);
 
