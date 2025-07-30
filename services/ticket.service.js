@@ -108,11 +108,15 @@ export async function anularTicketService(ticket_id, observacion, usuario_id) {
     throw { status: 400, message: 'El ticket ya está anulado.' }
   }
 
+ 
+
   // Actualizar ticket
   ticket.estado = 'anulado'
   ticket.observacion = observacion
   ticket.usuario_id = usuario_id
   await ticket.save()
+
+ //  await Venta.update({ estado: 'cancelada' }, { where: { id: ticket.venta_id } })
 
   return ticket
 }

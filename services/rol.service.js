@@ -44,15 +44,28 @@ export async function crearRolService({ nombre, permisos = [] }) {
   return { success: true, message: 'Rol creado con permisos asignados', rol }
 }
 
-export async function actualizarRolService(id, { nombre }) {
-  const rol = await Rol.findByPk(id)
-  if (!rol) throw { status: 404, message: 'Rol no encontrado' }
+export async function actualizarRolService(id, { nombre, permisos = [] }) {
+  const rol = await Rol.findByPk(id, { include: ['Permisos'] }); // Incluye los permisos actuales
 
-  rol.nombre = nombre || rol.nombre
-  await rol.save()
+  if (!rol) throw { status: 404, message: 'Rol no encontrado' };
 
-  return { success: true, message: 'Rol actualizado', rol }
+  // Actualizar nombre si se proporciona
+  if (nombre) rol.nombre = nombre;
+
+  await rol.save();
+
+  // Actualizar los permisos si se proporcionan
+  if (Array.isArray(permisos)) {
+    const permisosEncontrados = await Permiso.findAll({
+      where: { nombre: permisos }
+    });
+
+    await rol.setPermisos(permisosEncontrados); // Reemplaza los permisos actuales
+  }
+
+  return { success: true, message: 'Rol actualizado', rol };
 }
+
 
 export async function eliminarRolService(id) {
   const rol = await Rol.findByPk(id)
