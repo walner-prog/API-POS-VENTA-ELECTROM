@@ -304,7 +304,7 @@ if (desde && hasta) {
   const { count, rows: cajas } = await Caja.findAndCountAll({
     where,
     order: [['closed_at', 'DESC']],
-    attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'hora_apertura', 'observacion', 'estado'],
+    attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'hora_apertura', 'observacion', 'estado', 'nombre'],
     include: [
       {
         model: Usuario, // Aquí se incluye el modelo Usuario
