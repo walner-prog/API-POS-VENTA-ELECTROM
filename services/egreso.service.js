@@ -118,11 +118,10 @@ export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, lim
 
   if (!caja_id) {
     const hoyInicio = new Date();
-    hoyInicio.setHours(0, 0, 0, 0); // inicio del día
+    hoyInicio.setHours(0, 0, 0, 0);
     const hoyFin = new Date();
-    hoyFin.setHours(23, 59, 59, 999); // fin del día
+    hoyFin.setHours(23, 59, 59, 999);
 
-    // Busca una caja abierta que haya sido abierta hoy (en cualquier momento del día)
     const cajaHoy = await Caja.findOne({
       where: {
         estado: 'abierta',
@@ -150,6 +149,12 @@ export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, lim
 
   const { count, rows } = await Egreso.findAndCountAll({
     where,
+    include: [
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre']
+      }
+    ],
     order: [['created_at', 'DESC']],
     limit,
     offset
@@ -163,6 +168,7 @@ export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, lim
     caja_id: cajaIdFinal
   };
 };
+ 
 
 
 export const anularEgresoService = async (egreso_id, usuario_id) => {
