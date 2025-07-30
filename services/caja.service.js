@@ -472,7 +472,6 @@ export async function cajaActualService(usuario_id) {
   };
 }
 
-
 export const listarCajasParaSelectorService = async () => {
   const hoyInicio = new Date();
   hoyInicio.setHours(0, 0, 0, 0);
@@ -483,7 +482,7 @@ export const listarCajasParaSelectorService = async () => {
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() - 31);
 
-  // Buscar la caja abierta hoy (si hay una)
+  // Caja abierta hoy (si existe)
   const cajaAbiertaHoy = await Caja.findOne({
     where: {
       estado: 'abierta',
@@ -495,10 +494,11 @@ export const listarCajasParaSelectorService = async () => {
         attributes: ['id', 'nombre']
       }
     ],
+    attributes: ['id', 'created_at'],
     order: [['created_at', 'DESC']]
   });
 
-  // Buscar todas las cajas cerradas recientes (últimos 31 días)
+  // Cajas cerradas en los últimos 31 días
   const cajasCerradas = await Caja.findAll({
     where: {
       estado: 'cerrada',
@@ -510,11 +510,28 @@ export const listarCajasParaSelectorService = async () => {
         attributes: ['id', 'nombre']
       }
     ],
+    attributes: ['id', 'created_at', 'closed_at'],
     order: [['created_at', 'DESC']]
   });
 
+  // Mapear y simplificar las respuestas
+  const cajaAbierta = cajaAbiertaHoy
+    ? {
+        id: cajaAbiertaHoy.id,
+        fecha_apertura: cajaAbiertaHoy.created_at,
+        cajero: cajaAbiertaHoy.Usuario?.nombre || 'Desconocido'
+      }
+    : null;
+
+  const cajas = cajasCerradas.map(caja => ({
+    id: caja.id,
+    fecha_apertura: caja.created_at,
+    fecha_cierre: caja.closed_at,
+    cajero: caja.Usuario?.nombre || 'Desconocido'
+  }));
+
   return {
-    cajaAbiertaHoy,
-    cajasCerradas
+    cajaAbiertaHoy: cajaAbierta,
+    cajasCerradas: cajas
   };
 };
