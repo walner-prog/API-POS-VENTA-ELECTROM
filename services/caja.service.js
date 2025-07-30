@@ -472,24 +472,21 @@ export async function cajaActualService(usuario_id) {
   };
 }
 
-export const listarCajasParaSelectorService = async (usuario_id, esAdmin) => {
+export const listarCajasParaSelectorService = async () => {
   const hoyInicio = new Date();
   hoyInicio.setHours(0, 0, 0, 0);
+
   const hoyFin = new Date();
   hoyFin.setHours(23, 59, 59, 999);
 
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() - 31);
 
-  // Filtro base según si es admin o no
-  const filtroUsuario = esAdmin ? {} : { usuario_id };
-
-  // Cajas abiertas del día
-  const cajasAbiertasHoy = await Caja.findAll({
+  // Buscar la caja abierta hoy (si hay una)
+  const cajaAbiertaHoy = await Caja.findOne({
     where: {
       estado: 'abierta',
-      created_at: { [Op.between]: [hoyInicio, hoyFin] },
-      ...filtroUsuario
+      created_at: { [Op.between]: [hoyInicio, hoyFin] }
     },
     include: [
       {
@@ -497,16 +494,14 @@ export const listarCajasParaSelectorService = async (usuario_id, esAdmin) => {
         attributes: ['id', 'nombre']
       }
     ],
-    attributes: ['id', 'created_at'],
     order: [['created_at', 'DESC']]
   });
 
-  // Cajas cerradas en los últimos 31 días
+  // Buscar todas las cajas cerradas recientes (últimos 31 días)
   const cajasCerradas = await Caja.findAll({
     where: {
       estado: 'cerrada',
-      created_at: { [Op.gte]: fechaLimite },
-      ...filtroUsuario
+      created_at: { [Op.gte]: fechaLimite }
     },
     include: [
       {
@@ -514,27 +509,12 @@ export const listarCajasParaSelectorService = async (usuario_id, esAdmin) => {
         attributes: ['id', 'nombre']
       }
     ],
-    attributes: ['id', 'created_at', 'closed_at'],
     order: [['created_at', 'DESC']]
   });
 
-  // Mapeo de cajas abiertas
-  const cajasAbiertasMapeadas = cajasAbiertasHoy.map(caja => ({
-    id: caja.id,
-    fecha_apertura: caja.created_at,
-    cajero: caja.Usuario?.nombre || 'Desconocido'
-  }));
-
-  // Mapeo de cajas cerradas
-  const cajasCerradasMapeadas = cajasCerradas.map(caja => ({
-    id: caja.id,
-    fecha_apertura: caja.created_at,
-    fecha_cierre: caja.closed_at,
-    cajero: caja.Usuario?.nombre || 'Desconocido'
-  }));
-
   return {
-    cajasAbiertas: cajasAbiertasMapeadas,
-    cajasCerradas: cajasCerradasMapeadas
+    cajaAbiertaHoy,
+    cajasCerradas
   };
 };
+

@@ -109,11 +109,7 @@ export const cajaActual = async (req, res) => {
 
 export const obtenerCajasUltimos31Dias = async (req, res) => {
   try {
-    const data = await listarCajasParaSelectorService({
-      usuario_id: req.usuario.id,
-      esAdmin: req.usuario.rol === 'admin' // o como determines si es admin
-    });
-
+    const data = await listarCajasParaSelectorService(req.usuario.id);
     res.json(data);
   } catch (error) {
     res.status(error.status || 500).json({
