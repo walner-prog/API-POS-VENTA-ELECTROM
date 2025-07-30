@@ -2,6 +2,7 @@ import { cancelarVentaService } from '../services/venta/cancelarVenta.service.js
 import { crearVentaService } from '../services/venta/crearVenta.service.js';
 import { obtenerDetalleVentaService } from '../services/venta/listarVentaId.service.js';
 import { obtenerVentasDelDia } from '../services/venta/listarTodasVentasDia.service.js';
+import { obtenerTotalesVentasDelDiaService } from '../services/venta/totalesVentasDia.service.js';
 import { validarVenta, validarCancelacion } from '../validator/venta.validacion.js';
 import logger from "../config/logger.js";
   //  await validarVenta(req.body);
@@ -53,21 +54,29 @@ export const cancelarVenta = async (req, res) => {
 
 export const listarVentasDelDia = async (req, res) => {
   try {
-    const { pagina, limite, estado, caja_id } = req.query;
+    const { pagina = 1, limite = 5, estado = null, caja_id = null } = req.query;
 
     const resultado = await obtenerVentasDelDia({
-      pagina,
-      limite,
-      estado,
-      caja_id
+      pagina: Number(pagina),
+      limite: Number(limite),
+      estado: estado || null,
+      caja_id: caja_id ? Number(caja_id) : null
     });
 
-    res.json({
-      success: true,
-      ...resultado
-    });
+    res.json({ success: true, ...resultado });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: "Error al obtener las ventas del día" });
+    res.status(500).json({ success: false, message: 'Error al obtener ventas' });
   }
 };
+
+export const obtenerTotalesVentasDelDiaController = async (req, res) => {
+  try {
+    const totales = await obtenerTotalesVentasDelDiaService();
+    res.json(totales);
+  } catch (error) {
+    console.error('Error al obtener totales del día:', error);
+    res.status(500).json({ message: 'Error al obtener totales de ventas del día' });
+  }
+};
+
