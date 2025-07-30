@@ -5,6 +5,7 @@ import {
   cajaActualService,
   verCajaAbiertaService,
   historialCierresService,
+  listarCajasParaSelectorService
  
 } from '../services/caja.service.js'
  
@@ -105,3 +106,15 @@ export const cajaActual = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error interno' })
   }
 }
+
+export const obtenerCajasUltimos31Dias = async (req, res) => {
+  try {
+    const data = await listarCajasParaSelectorService(req.usuario.id);
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Error al obtener cajas de los últimos 31 días'
+    });
+  }
+};

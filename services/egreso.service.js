@@ -107,39 +107,62 @@ export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
 
 
 
-export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, limit = 10 }) => {
-  const offset = (page - 1) * limit
+export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, limit = 5 }) => {
+  const offset = (page - 1) * limit;
 
-  const fechaLimite = new Date()
-  fechaLimite.setDate(fechaLimite.getDate() - 30) // solo últimos 30 días
+  // Limita la búsqueda a egresos de los últimos 31 días
+  const fechaLimite = new Date();
+  fechaLimite.setDate(fechaLimite.getDate() - 31);
 
- const where = {
-  caja_id,
-  estado: { [Op.or]: ['activo', 'anulado'] },
-  created_at: { [Op.gte]: fechaLimite }
-}
+  let cajaIdFinal = caja_id;
 
+  if (!caja_id) {
+    const hoyInicio = new Date();
+    hoyInicio.setHours(0, 0, 0, 0); // inicio del día
+    const hoyFin = new Date();
+    hoyFin.setHours(23, 59, 59, 999); // fin del día
 
-  if (tipo) {
-    where.tipo = { [Op.like]: `%${tipo}%` } // filtro flexible
+    // Busca una caja abierta que haya sido abierta hoy (en cualquier momento del día)
+    const cajaHoy = await Caja.findOne({
+      where: {
+        estado: 'abierta',
+        fecha_apertura: { [Op.between]: [hoyInicio, hoyFin] }
+      },
+      order: [['fecha_apertura', 'DESC']]
+    });
+
+    if (!cajaHoy) {
+      throw new Error('No hay caja abierta hoy y no se especificó una caja.');
+    }
+
+    cajaIdFinal = cajaHoy.id;
   }
 
- 
+  const where = {
+    caja_id: cajaIdFinal,
+    estado: { [Op.or]: ['activo', 'anulado'] },
+    created_at: { [Op.gte]: fechaLimite }
+  };
+
+  if (tipo) {
+    where.tipo = { [Op.like]: `%${tipo}%` };
+  }
 
   const { count, rows } = await Egreso.findAndCountAll({
     where,
     order: [['created_at', 'DESC']],
     limit,
     offset
-  })
+  });
 
   return {
     total: count,
-    pagina_actual: parseInt(page),
+    pagina_actual: page,
     total_paginas: Math.ceil(count / limit),
-    egresos: rows
-  }
-}
+    egresos: rows,
+    caja_id: cajaIdFinal
+  };
+};
 
 
 export const anularEgresoService = async (egreso_id, usuario_id) => {

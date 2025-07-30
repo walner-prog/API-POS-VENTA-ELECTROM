@@ -83,7 +83,7 @@ export async function eliminarRolService(id) {
   const rol = await Rol.findByPk(id)
   if (!rol) throw { status: 404, message: 'Rol no encontrado' }
 
-  if (rol.nombre.toLowerCase() === 'admin') {
+  if (rol.nombre.toLowerCase() === 'admin' || rol.nombre.toLowerCase() === 'administrador') {
     throw { status: 403, message: 'No se puede eliminar el rol admin' }
   }
 
