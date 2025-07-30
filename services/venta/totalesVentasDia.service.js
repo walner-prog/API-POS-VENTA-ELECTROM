@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import Venta from "../../models/index.js";
+import { Venta } from "../../models/index.js";
 
 export const obtenerTotalesVentasDelDiaService = async () => {
   const hoyInicio = new Date();
