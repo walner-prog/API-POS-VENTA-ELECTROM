@@ -164,7 +164,7 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
   hace31Dias.setDate(hace31Dias.getDate() - 31);
 
   const { count, rows } = await Caja.findAndCountAll({
-    where: {
+     where: {
       usuario_id,
       estado: 'cerrada',
       closed_at: {
@@ -258,44 +258,69 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 
 
 
-
 export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estado) {
   const offset = (pagina - 1) * limite;
 
-    const hace31Dias = new Date();
-    hace31Dias.setDate(hace31Dias.getDate() - 31);
-
-  const where = {
-  usuario_id
-};
-
-if (estado === 'abierta' || estado === 'cerrada') {
-  where.estado = estado;
-}
-
-if (desde && hasta) {
-  where.closed_at = {
-    [Op.between]: [new Date(desde), new Date(hasta)]
-  };
-} else if (desde) {
-  where.closed_at = {
-    [Op.gte]: new Date(desde)
-  };
-} else if (hasta) {
-  where.closed_at = {
-    [Op.lte]: new Date(hasta)
-  };
-} else {
+  const hoy = new Date();
   const hace31Dias = new Date();
-  hace31Dias.setDate(hace31Dias.getDate() - 31);
-  where.closed_at = {
-    [Op.gte]: hace31Dias
+  hace31Dias.setDate(hoy.getDate() - 31);
+
+  // Validación fechas
+  if (desde) {
+    const fechaDesde = new Date(desde);
+    if (fechaDesde < hace31Dias) {
+      throw { status: 400, message: 'La fecha de inicio no puede ser anterior a los últimos 31 días.' };
+    }
+    if (fechaDesde > hoy) {
+      throw { status: 400, message: 'La fecha de inicio no puede ser una fecha futura.' };
+    }
+  }
+
+  if (hasta) {
+    const fechaHasta = new Date(hasta);
+    if (fechaHasta < hace31Dias) {
+      throw { status: 400, message: 'La fecha de fin no puede ser anterior a los últimos 31 días.' };
+    }
+    if (fechaHasta > hoy) {
+      throw { status: 400, message: 'La fecha de fin no puede ser una fecha futura.' };
+    }
+  }
+
+  if (desde && hasta) {
+    const fechaDesde = new Date(desde);
+    const fechaHasta = new Date(hasta);
+    if (fechaDesde > fechaHasta) {
+      throw { status: 400, message: "La fecha 'Desde' no puede ser mayor que la fecha 'Hasta'." };
+    }
+  }
+
+  // Construcción de filtros
+  const where = {
+    usuario_id,
+    estado: 'cerrada',
   };
-}
 
+  if (estado === 'abierta' || estado === 'cerrada') {
+    where.estado = estado;
+  }
 
-
-
+  if (desde && hasta) {
+    where.closed_at = {
+      [Op.between]: [new Date(desde), new Date(hasta)],
+    };
+  } else if (desde) {
+    where.closed_at = {
+      [Op.gte]: new Date(desde),
+    };
+  } else if (hasta) {
+    where.closed_at = {
+      [Op.lte]: new Date(hasta),
+    };
+  } else {
+    where.closed_at = {
+      [Op.gte]: hace31Dias,
+    };
+  }
 
   const { count, rows: cajas } = await Caja.findAndCountAll({
     where,
@@ -303,34 +328,32 @@ if (desde && hasta) {
     attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'hora_apertura', 'observacion', 'estado'],
     include: [
       {
-        model: Usuario, // Aquí se incluye el modelo Usuario
-        attributes: ['id', 'nombre']
+        model: Usuario,
+        attributes: ['id', 'nombre'],
       },
       {
         model: Venta,
         where: { estado: 'completada' },
         required: false,
-        attributes: ['id', 'total', 'estado']
+        attributes: ['id', 'total', 'estado'],
       },
       {
         model: Egreso,
         where: { estado: 'activo' },
         required: false,
-        attributes: ['id', 'monto', 'estado']
-      }
+        attributes: ['id', 'monto', 'estado'],
+      },
     ],
     limit: parseInt(limite),
-    offset: parseInt(offset)
+    offset: parseInt(offset),
   });
 
   const formatearHora = (hora) => {
-  // Creamos una fecha ficticia con esa hora y la interpretamos en UTC
-  return new Date(`1970-01-01T${hora}Z`).toLocaleTimeString('es-NI', {
-    timeZone: 'America/Managua',
-    hour12: true
-  });
-};
-
+    return new Date(`1970-01-01T${hora}Z`).toLocaleTimeString('es-NI', {
+      timeZone: 'America/Managua',
+      hour12: true,
+    });
+  };
 
   const historial = cajas.map(caja => {
     const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
@@ -342,7 +365,6 @@ if (desde && hasta) {
       monto_inicial: caja.monto_inicial,
       monto_final: caja.monto_final,
       hora_apertura: formatearHora(caja.hora_apertura),
-
       closed_at: caja.closed_at,
       estado: caja.estado,
       hora_cierre: caja.closed_at,
@@ -350,7 +372,7 @@ if (desde && hasta) {
       total_ventas: totalVentas,
       total_egresos: totalEgresos,
       dinero_esperado: dineroEsperado,
-      usuario: caja.Usuario // <-- Aquí devolvés el usuario completo
+      usuario: caja.Usuario,
     };
   });
 
@@ -360,9 +382,10 @@ if (desde && hasta) {
     total: count,
     pagina: parseInt(pagina),
     paginas: Math.ceil(count / limite),
-    message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined
+    message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
   };
 }
+
 
 
 export async function verCajaAbiertaService(usuario_id) {
