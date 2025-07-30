@@ -476,18 +476,25 @@ export async function cajaActualService(usuario_id) {
 export const listarCajasParaSelectorService = async () => {
   const hoyInicio = new Date();
   hoyInicio.setHours(0, 0, 0, 0);
+
   const hoyFin = new Date();
   hoyFin.setHours(23, 59, 59, 999);
 
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() - 31);
 
-  // Buscar caja abierta hoy (única)
+  // Buscar la caja abierta hoy (si hay una)
   const cajaAbiertaHoy = await Caja.findOne({
     where: {
       estado: 'abierta',
       created_at: { [Op.between]: [hoyInicio, hoyFin] }
     },
+    include: [
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre']
+      }
+    ],
     order: [['created_at', 'DESC']]
   });
 
@@ -497,6 +504,12 @@ export const listarCajasParaSelectorService = async () => {
       estado: 'cerrada',
       created_at: { [Op.gte]: fechaLimite }
     },
+    include: [
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre']
+      }
+    ],
     order: [['created_at', 'DESC']]
   });
 
