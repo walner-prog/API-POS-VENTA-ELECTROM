@@ -6,6 +6,6 @@ const router = Router();
 router.post('/', authMiddleware, crearVenta);
 router.get('/:id', authMiddleware,  obtenerDetalleVentaPorId);
 router.post('/cancelar/:id', authMiddleware, cancelarVenta);
-router.get('/del-dia', authMiddleware, listarVentasDelDia);
+router.get('/del-dia/ventas', authMiddleware, listarVentasDelDia);
 
 export default router;

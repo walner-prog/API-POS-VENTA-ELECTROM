@@ -51,9 +51,8 @@ export const cancelarVenta = async (req, res) => {
   }
 };
 
-export const listarVentasDelDia = async (req, res) => {
-  console.log("📦 Llegó a listarVentasDelDia");
 
+export const listarVentasDelDia = async (req, res) => {
   try {
     const ventas = await obtenerVentasDelDia();
     res.json({ success: true, ventas });
