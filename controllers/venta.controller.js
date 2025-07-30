@@ -20,7 +20,7 @@ export const crearVenta = async (req, res) => {
     });
   }
 };
-
+  
 export async function obtenerDetalleVentaPorId(req, res) {
   try {
     const id = req.params.id;
@@ -31,12 +31,12 @@ export async function obtenerDetalleVentaPorId(req, res) {
   }
 }
 
-
+ 
 export const cancelarVenta = async (req, res) => {
   try {
     await validarCancelacion(req.body);
     const { motivo } = req.body;
-    const venta_id = req.params.id;
+    const venta_id = req.params.id; 
 
     const data = await cancelarVentaService(venta_id, motivo, req.usuario.id);
   //  logger.info(`⚠️ Venta cancelada - ID Venta: ${venta_id} por el usuario ${req.usuario.id} con motivo: "${motivo}"`);
@@ -51,8 +51,9 @@ export const cancelarVenta = async (req, res) => {
   }
 };
 
-
 export const listarVentasDelDia = async (req, res) => {
+  console.log("📦 Llegó a listarVentasDelDia");
+
   try {
     const ventas = await obtenerVentasDelDia();
     res.json({ success: true, ventas });
