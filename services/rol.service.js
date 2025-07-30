@@ -45,22 +45,34 @@ export async function crearRolService({ nombre, permisos = [] }) {
 }
 
 export async function actualizarRolService(id, { nombre, permisos = [] }) {
-  const rol = await Rol.findByPk(id, { include: ['Permisos'] }); // Incluye los permisos actuales
+  const rol = await Rol.findByPk(id, { include: ['Permisos'] });
 
   if (!rol) throw { status: 404, message: 'Rol no encontrado' };
 
-  // Actualizar nombre si se proporciona
-  if (nombre) rol.nombre = nombre;
+  const nombreOriginal = rol.nombre.toLowerCase();
+  const esAdmin = nombreOriginal === 'admin' || nombreOriginal === 'administrador';
+
+  // 🚫 No permitir modificar el nombre del rol si es admin
+  if (esAdmin && nombre && nombre.toLowerCase() !== nombreOriginal) {
+    throw { status: 403, message: 'No se permite cambiar el nombre del rol administrador.' };
+  }
+
+  // 🚫 No permitir modificar los permisos del rol admin
+  if (esAdmin && permisos.length > 0) {
+    throw { status: 403, message: 'No se permite modificar los permisos del rol administrador.' };
+  }
+
+  // Actualizar nombre si se permite
+  if (nombre && !esAdmin) rol.nombre = nombre;
 
   await rol.save();
 
-  // Actualizar los permisos si se proporcionan
-  if (Array.isArray(permisos)) {
+  // Actualizar permisos si se permiten
+  if (!esAdmin && Array.isArray(permisos)) {
     const permisosEncontrados = await Permiso.findAll({
       where: { nombre: permisos }
     });
-
-    await rol.setPermisos(permisosEncontrados); // Reemplaza los permisos actuales
+    await rol.setPermisos(permisosEncontrados);
   }
 
   return { success: true, message: 'Rol actualizado', rol };
