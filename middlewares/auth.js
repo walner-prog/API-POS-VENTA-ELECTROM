@@ -14,18 +14,22 @@ export default async function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const usuario = await Usuario.findByPk(decoded.id, {
-      attributes: ['id', 'nombre', 'email'],
-      include: {
-        model: Rol,
-        attributes: ['nombre'],
-        include: {
+const usuario = await Usuario.findByPk(decoded.id, {
+  attributes: ['id', 'nombre', 'email'],
+  include: [
+    {
+      model: Rol,
+      attributes: ['nombre'],
+      include: [
+        {
           model: Permiso,
           attributes: ['nombre'],
           through: { attributes: [] }
         }
-      }
-    });
+      ]
+    }
+  ]
+});
 
     if (!usuario) {
       return res.status(401).json({ success: false, message: 'Usuario no válido' });
