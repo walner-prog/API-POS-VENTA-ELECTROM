@@ -495,9 +495,9 @@ export const listarCajasParaSelectorService = async () => {
   const cajasCerradas = await Caja.findAll({
     where: {
       estado: 'cerrada',
-      fecha_apertura: { [Op.gte]: fechaLimite }
+      hora_apertura: { [Op.gte]: fechaLimite }
     },
-    order: [['fecha_apertura', 'DESC']]
+    order: [['hora_apertura', 'DESC']]
   });
 
   return {
