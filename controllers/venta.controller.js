@@ -2,7 +2,7 @@ import { cancelarVentaService } from '../services/venta/cancelarVenta.service.js
 import { crearVentaService } from '../services/venta/crearVenta.service.js';
 import { obtenerDetalleVentaService } from '../services/venta/listarVentaId.service.js';
 import { obtenerVentasDelDia } from '../services/venta/listarTodasVentasDia.service.js';
-import { obtenerTotalesVentasDelDiaService } from '../services/venta/totalesVentasDia.service.js';
+import { obtenerTotalesVentasPorCajaService } from '../services/venta/totalesVentasDia.service.js';
 import { validarVenta, validarCancelacion } from '../validator/venta.validacion.js';
 import logger from "../config/logger.js";
   //  await validarVenta(req.body);
@@ -70,13 +70,19 @@ export const listarVentasDelDia = async (req, res) => {
   }
 };
 
-export const obtenerTotalesVentasDelDiaController = async (req, res) => {
+export const obtenerTotalesVentasPorCajaController = async (req, res) => {
   try {
-    const totales = await obtenerTotalesVentasDelDiaService();
+    const { caja_id } = req.params;
+
+    if (!caja_id) {
+      return res.status(400).json({ message: 'Caja ID requerido' });
+    }
+
+    const totales = await obtenerTotalesVentasPorCajaService(caja_id);
     res.json(totales);
   } catch (error) {
-    console.error('Error al obtener totales del día:', error);
-    res.status(500).json({ message: 'Error al obtener totales de ventas del día' });
+    console.error('Error al obtener totales por caja:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
 

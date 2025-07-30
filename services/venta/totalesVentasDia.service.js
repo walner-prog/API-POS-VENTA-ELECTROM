@@ -1,7 +1,8 @@
 import { Op } from 'sequelize';
 import { Venta } from "../../models/index.js";
 
-export const obtenerTotalesVentasDelDiaService = async () => {
+ 
+export const obtenerTotalesVentasPorCajaService = async (caja_id) => {
   const hoyInicio = new Date();
   hoyInicio.setHours(0, 0, 0, 0);
 
@@ -10,6 +11,7 @@ export const obtenerTotalesVentasDelDiaService = async () => {
 
   const ventas = await Venta.findAll({
     where: {
+      caja_id, // filtrar por caja
       created_at: {
         [Op.between]: [hoyInicio, hoyFin]
       }
@@ -29,3 +31,4 @@ export const obtenerTotalesVentasDelDiaService = async () => {
 
   return totales;
 };
+
