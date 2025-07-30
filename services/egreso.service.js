@@ -186,12 +186,12 @@ export const anularEgresoService = async (egreso_id, usuario_id, permisosUsuario
 
   // Validar que solo el creador o alguien con permiso pueda anular
   const esCreador = egreso.usuario_id === usuario_id;
-  const tienePermisoAdmin = permisosUsuario.includes('anular_egresos');
+ 
 
-  if (!esCreador && !tienePermisoAdmin) {
+  if (!esCreador ) {
     throw {
       status: 403,
-      message: 'Solo el creador del egreso o un usuario con permiso puede anularlo.'
+      message: 'Solo el creador del egreso puede anularlo.'
     };
   }
 

@@ -12,6 +12,6 @@ const router = express.Router()
 router.post('/', authMiddleware, crearEgreso)
 router.put('/:id', authMiddleware, actualizarEgreso)
 router.get('/caja/:caja_id', authMiddleware, listarEgresosPorCaja)
-router.put('/anular/:egreso_id', authMiddleware, soloCreadorOAdmin, tienePermiso('anular_egresos'), anularEgreso);
+router.put('/anular/:egreso_id', authMiddleware, soloCreadorOAdmin, anularEgreso);
 
 export default router
