@@ -51,13 +51,23 @@ export const cancelarVenta = async (req, res) => {
   }
 };
 
-
 export const listarVentasDelDia = async (req, res) => {
   try {
-    const ventas = await obtenerVentasDelDia();
-    res.json({ success: true, ventas });
+    const { pagina, limite, estado, caja_id } = req.query;
+
+    const resultado = await obtenerVentasDelDia({
+      pagina,
+      limite,
+      estado,
+      caja_id
+    });
+
+    res.json({
+      success: true,
+      ...resultado
+    });
   } catch (error) {
-    console.error('Error al obtener ventas del día:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener ventas' });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error al obtener las ventas del día" });
   }
 };
