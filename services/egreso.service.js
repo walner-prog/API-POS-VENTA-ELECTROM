@@ -171,7 +171,7 @@ export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, lim
  
 
 
-export const anularEgresoService = async (egreso_id, usuario_id) => {
+export const anularEgresoService = async (egreso_id, usuario_id, permisosUsuario = []) => {
   const egreso = await Egreso.findOne({
     where: { id: egreso_id, estado: 'activo' },
     include: [Caja]
@@ -184,7 +184,17 @@ export const anularEgresoService = async (egreso_id, usuario_id) => {
   const caja = egreso.Caja;
   if (!caja) throw { status: 404, message: 'Caja asociada no encontrada' };
 
-  // Ya no devolvemos dinero a la caja, solo marcamos como anulado
+  // Validar que solo el creador o alguien con permiso pueda anular
+  const esCreador = egreso.usuario_id === usuario_id;
+  const tienePermisoAdmin = permisosUsuario.includes('anular_egresos');
+
+  if (!esCreador && !tienePermisoAdmin) {
+    throw {
+      status: 403,
+      message: 'Solo el creador del egreso o un usuario con permiso puede anularlo.'
+    };
+  }
+
   egreso.estado = 'anulado';
   egreso.anulado_por = usuario_id;
   egreso.anulado_en = new Date();
@@ -192,3 +202,4 @@ export const anularEgresoService = async (egreso_id, usuario_id) => {
 
   return { success: true, message: 'Egreso anulado correctamente' };
 };
+

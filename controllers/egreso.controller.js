@@ -57,19 +57,19 @@ export const listarEgresosPorCaja = async (req, res) => {
 
 export const anularEgreso = async (req, res) => {
   try {
-   const egreso_id = req.params.egreso_id;
+    const usuario_id = req.usuario.id;
+    const permisos = req.usuario?.Rol?.Permisos?.map(p => p.nombre) || [];
+    const { egreso_id } = req.params;
 
-
-    const usuario_id = req.usuario.id  // Suponiendo que tienes middleware de auth que pone el usuario en req.usuario
-
-    const resultado = await anularEgresoService(egreso_id, usuario_id)
-
-    res.json({ success: true, message: resultado.message })
+    const resultado = await anularEgresoService(egreso_id, usuario_id, permisos);
+    res.json(resultado);
   } catch (error) {
+    console.error(error);
     res.status(error.status || 500).json({
       success: false,
-      message: error.message || 'Error interno al anular egreso'
-    })
+      message: error.message || 'Error al anular egreso'
+    });
   }
-}
+};
+
 
