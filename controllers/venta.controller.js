@@ -1,6 +1,7 @@
 import { cancelarVentaService } from '../services/venta/cancelarVenta.service.js';
 import { crearVentaService } from '../services/venta/crearVenta.service.js';
-import { obtenerDetalleVentaService } from '../services/venta/listarVentaId.js';
+import { obtenerDetalleVentaService } from '../services/venta/listarVentaId.service.js';
+import { obtenerVentasDelDia } from '../services/venta/listarTodasVentasDia.service.js';
 import { validarVenta, validarCancelacion } from '../validator/venta.validacion.js';
 import logger from "../config/logger.js";
   //  await validarVenta(req.body);
@@ -47,5 +48,16 @@ export const cancelarVenta = async (req, res) => {
       success: false,
       message: error.message || 'Error interno'
     });
+  }
+};
+
+
+export const listarVentasDelDia = async (req, res) => {
+  try {
+    const ventas = await obtenerVentasDelDia();
+    res.json({ success: true, ventas });
+  } catch (error) {
+    console.error('Error al obtener ventas del día:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener ventas' });
   }
 };
