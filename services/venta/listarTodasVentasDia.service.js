@@ -32,7 +32,7 @@ export const obtenerVentasDelDia = async ({ pagina = 1, limite = 5, estado = nul
       }
     ],
     order: [['created_at', 'DESC']],
-    limit,
+    limit: parseInt(limite),
     offset
   });
 
