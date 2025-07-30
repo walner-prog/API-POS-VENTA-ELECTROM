@@ -1,4 +1,4 @@
-import { Egreso, Caja,Venta } from '../models/index.js'
+import { Egreso, Caja,Venta,Usuario } from '../models/index.js'
 import { Op } from 'sequelize'
  
 
