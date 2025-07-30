@@ -293,6 +293,12 @@ if (desde && hasta) {
   };
 }
 
+  if (busqueda) {
+    where.nombre = {
+      [Op.like]: `%${busqueda}%`
+    };
+  }
+
 
 
   const { count, rows: cajas } = await Caja.findAndCountAll({
