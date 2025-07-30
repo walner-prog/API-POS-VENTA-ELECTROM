@@ -472,21 +472,24 @@ export async function cajaActualService(usuario_id) {
   };
 }
 
-export const listarCajasParaSelectorService = async () => {
+export const listarCajasParaSelectorService = async (usuario_id, esAdmin) => {
   const hoyInicio = new Date();
   hoyInicio.setHours(0, 0, 0, 0);
-
   const hoyFin = new Date();
   hoyFin.setHours(23, 59, 59, 999);
 
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() - 31);
 
-  // Caja abierta hoy (si existe)
-  const cajaAbiertaHoy = await Caja.findOne({
+  // Filtro base según si es admin o no
+  const filtroUsuario = esAdmin ? {} : { usuario_id };
+
+  // Cajas abiertas del día
+  const cajasAbiertasHoy = await Caja.findAll({
     where: {
       estado: 'abierta',
-      created_at: { [Op.between]: [hoyInicio, hoyFin] }
+      created_at: { [Op.between]: [hoyInicio, hoyFin] },
+      ...filtroUsuario
     },
     include: [
       {
@@ -502,7 +505,8 @@ export const listarCajasParaSelectorService = async () => {
   const cajasCerradas = await Caja.findAll({
     where: {
       estado: 'cerrada',
-      created_at: { [Op.gte]: fechaLimite }
+      created_at: { [Op.gte]: fechaLimite },
+      ...filtroUsuario
     },
     include: [
       {
@@ -514,16 +518,15 @@ export const listarCajasParaSelectorService = async () => {
     order: [['created_at', 'DESC']]
   });
 
-  // Mapear y simplificar las respuestas
-  const cajaAbierta = cajaAbiertaHoy
-    ? {
-        id: cajaAbiertaHoy.id,
-        fecha_apertura: cajaAbiertaHoy.created_at,
-        cajero: cajaAbiertaHoy.Usuario?.nombre || 'Desconocido'
-      }
-    : null;
+  // Mapeo de cajas abiertas
+  const cajasAbiertasMapeadas = cajasAbiertasHoy.map(caja => ({
+    id: caja.id,
+    fecha_apertura: caja.created_at,
+    cajero: caja.Usuario?.nombre || 'Desconocido'
+  }));
 
-  const cajas = cajasCerradas.map(caja => ({
+  // Mapeo de cajas cerradas
+  const cajasCerradasMapeadas = cajasCerradas.map(caja => ({
     id: caja.id,
     fecha_apertura: caja.created_at,
     fecha_cierre: caja.closed_at,
@@ -531,7 +534,7 @@ export const listarCajasParaSelectorService = async () => {
   }));
 
   return {
-    cajaAbiertaHoy: cajaAbierta,
-    cajasCerradas: cajas
+    cajasAbiertas: cajasAbiertasMapeadas,
+    cajasCerradas: cajasCerradasMapeadas
   };
 };
