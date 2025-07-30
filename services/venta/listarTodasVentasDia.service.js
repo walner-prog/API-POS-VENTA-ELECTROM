@@ -1,4 +1,4 @@
-import { Venta, Caja, Usuario } from '../models/index.js';
+import { Venta, Caja, Usuario } from "../../models/index.js";
 import { Op } from 'sequelize';
 
 export const obtenerVentasDelDia = async () => {
