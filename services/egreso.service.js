@@ -106,63 +106,73 @@ export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
 };
 
 
+export const listarCajasParaSelectorService = async (usuario_id, esAdmin) => {
+  const hoyInicio = new Date();
+  hoyInicio.setHours(0, 0, 0, 0);
+  const hoyFin = new Date();
+  hoyFin.setHours(23, 59, 59, 999);
 
-export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, limit = 5 }) => {
-  const offset = (page - 1) * limit;
-
-  // Limita la búsqueda a egresos de los últimos 31 días
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() - 31);
 
-  let cajaIdFinal = caja_id;
+  // Filtro base según si es admin o no
+  const filtroUsuario = esAdmin ? {} : { usuario_id };
 
-  if (!caja_id) {
-    const hoyInicio = new Date();
-    hoyInicio.setHours(0, 0, 0, 0); // inicio del día
-    const hoyFin = new Date();
-    hoyFin.setHours(23, 59, 59, 999); // fin del día
-
-    // Busca una caja abierta que haya sido abierta hoy (en cualquier momento del día)
-    const cajaHoy = await Caja.findOne({
-      where: {
-        estado: 'abierta',
-        fecha_apertura: { [Op.between]: [hoyInicio, hoyFin] }
-      },
-      order: [['fecha_apertura', 'DESC']]
-    });
-
-    if (!cajaHoy) {
-      throw new Error('No hay caja abierta hoy y no se especificó una caja.');
-    }
-
-    cajaIdFinal = cajaHoy.id;
-  }
-
-  const where = {
-    caja_id: cajaIdFinal,
-    estado: { [Op.or]: ['activo', 'anulado'] },
-    created_at: { [Op.gte]: fechaLimite }
-  };
-
-  if (tipo) {
-    where.tipo = { [Op.like]: `%${tipo}%` };
-  }
-
-  const { count, rows } = await Egreso.findAndCountAll({
-    where,
-    order: [['created_at', 'DESC']],
-    limit,
-    offset
+  // Cajas abiertas del día
+  const cajasAbiertasHoy = await Caja.findAll({
+    where: {
+      estado: 'abierta',
+      created_at: { [Op.between]: [hoyInicio, hoyFin] },
+      ...filtroUsuario
+    },
+    include: [
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre']
+      }
+    ],
+    attributes: ['id', 'created_at'],
+    order: [['created_at', 'DESC']]
   });
 
+  // Cajas cerradas en los últimos 31 días
+  const cajasCerradas = await Caja.findAll({
+    where: {
+      estado: 'cerrada',
+      created_at: { [Op.gte]: fechaLimite },
+      ...filtroUsuario
+    },
+    include: [
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre']
+      }
+    ],
+    attributes: ['id', 'created_at', 'closed_at'],
+    order: [['created_at', 'DESC']]
+  });
+
+  // Mapeo de cajas abiertas
+  const cajasAbiertasMapeadas = cajasAbiertasHoy.map(caja => ({
+    id: caja.id,
+    fecha_apertura: caja.created_at,
+    cajero: caja.Usuario?.nombre || 'Desconocido'
+  }));
+
+  // Mapeo de cajas cerradas
+  const cajasCerradasMapeadas = cajasCerradas.map(caja => ({
+    id: caja.id,
+    fecha_apertura: caja.created_at,
+    fecha_cierre: caja.closed_at,
+    cajero: caja.Usuario?.nombre || 'Desconocido'
+  }));
+
   return {
-    total: count,
-    pagina_actual: page,
-    total_paginas: Math.ceil(count / limit),
-    egresos: rows,
-    caja_id: cajaIdFinal
+    cajasAbiertas: cajasAbiertasMapeadas,
+    cajasCerradas: cajasCerradasMapeadas
   };
 };
+
 
 
 export const anularEgresoService = async (egreso_id, usuario_id) => {
