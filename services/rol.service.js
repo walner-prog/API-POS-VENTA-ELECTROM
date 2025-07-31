@@ -7,12 +7,12 @@ export async function listarRolesService() {
     include: [{
       model: Permiso,
       attributes: ['id', 'nombre', 'descripcion'],
-      through: { attributes: [] }, // para no incluir la tabla intermedia RolPermiso
-      order: [['id', 'ASC']] // esto no funciona aquí directamente
+      through: { attributes: [] },  
+      order: [['id', 'ASC']]  
     }]
   });
 
-  // Ordenar permisos manualmente por id (opcional pero recomendado)
+   
   const rolesConPermisosOrdenados = roles.map(rol => {
     rol.Permisos = rol.Permisos.sort((a, b) => a.id - b.id);
     return rol;
@@ -28,16 +28,15 @@ export async function crearRolService({ nombre, permisos = [] }) {
   const existe = await Rol.findOne({ where: { nombre } })
   if (existe) throw { status: 409, message: 'El rol ya existe' }
 
-  // Crear rol nuevo
+ 
   const rol = await Rol.create({ nombre })
 
   if (permisos.length > 0) {
-    // Buscar los permisos por nombre (o podés usar ids si prefieres)
+     
     const permisosEncontrados = await Permiso.findAll({
       where: { nombre: permisos }
     })
-
-    // Asignar permisos al rol
+ 
     await rol.setPermisos(permisosEncontrados)
   }
 

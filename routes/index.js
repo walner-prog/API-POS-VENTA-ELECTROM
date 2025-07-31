@@ -6,6 +6,7 @@ import categoriaRoutes from './categoria.routes.js'
 import ticketRoutes from './ticket.routes.js'
 import egresoRoutes from './egreso.route.js'
 import productoRoutes from './producto.route.js'
+import reportesRoutes from './reportes.routes.js';
 
 export {
   usuarioRoutes,
@@ -15,5 +16,6 @@ export {
   categoriaRoutes,
   ticketRoutes,
   egresoRoutes,
-  productoRoutes
+  productoRoutes,
+  reportesRoutes
 }
