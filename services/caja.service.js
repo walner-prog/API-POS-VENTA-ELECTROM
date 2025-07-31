@@ -403,15 +403,16 @@ export async function verCajaAbiertaService(usuario_id) {
         where: { estado: 'activo' },
         required: false,
         attributes: ['id', 'monto', 'estado']
+      },
+      {
+        model: Usuario, // ✅ aquí se agrega
+        attributes: ['id', 'nombre'] // puedes incluir más si querés mostrarlo
       }
-      
     ]
-    
   });
- 
+
   if (!caja) throw { status: 404, message: 'No hay caja abierta para este usuario.' };
 
-  // Aquí usamos la propiedad que te devuelve Sequelize, que es singular
   const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
   const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
   const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
@@ -420,14 +421,17 @@ export async function verCajaAbiertaService(usuario_id) {
     success: true,
     caja: {
       id: caja.id,
+      estado: caja.estado,
       monto_inicial: caja.monto_inicial,
       total_ventas: totalVentas,
       total_egresos: totalEgresos,
       dinero_esperado: dineroEsperado,
-      hora_apertura: caja.created_at
+      hora_apertura: caja.created_at,
+      usuario: caja.Usuario // ✅ devolver el usuario también
     }
   };
 }
+
 
  
 
