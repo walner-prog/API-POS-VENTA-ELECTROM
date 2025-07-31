@@ -258,7 +258,7 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 
 
 
-export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estado) {
+export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
   const offset = (pagina - 1) * limite;
 
   const hoy = new Date();
@@ -300,8 +300,8 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     estado: 'cerrada',
   };
 
-  if (estado === 'abierta' || estado === 'cerrada') {
-    where.estado = estado;
+  if (estadoCaja === 'abierta' || estadoCaja === 'cerrada') {
+    where.estado = estadoCaja;
   }
 
   if (desde && hasta) {
