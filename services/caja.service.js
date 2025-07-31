@@ -483,20 +483,21 @@ export const listarCajasParaSelectorService = async () => {
   fechaLimite.setDate(fechaLimite.getDate() - 31);
 
   // Todas las cajas abiertas hoy
-  const cajasAbiertasHoy = await Caja.findAll({
-    where: {
-      estado: 'abierta',
-      created_at: { [Op.between]: [hoyInicio, hoyFin] }
-    },
-    include: [
-      {
-        model: Usuario,
-        attributes: ['id', 'nombre']
-      }
-    ],
-    attributes: ['id', 'created_at'],
-    order: [['created_at', 'DESC']]
-  });
+ 
+const cajasAbiertasHoy = await Caja.findAll({
+  where: {
+    estado: 'abierta'
+  },
+  include: [
+    {
+      model: Usuario,
+      attributes: ['id', 'nombre']
+    }
+  ],
+  attributes: ['id', 'created_at'],
+  order: [['created_at', 'DESC']]
+});
+
 
   // Cajas cerradas en los últimos 31 días
   const cajasCerradas = await Caja.findAll({
