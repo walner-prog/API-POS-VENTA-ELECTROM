@@ -44,3 +44,21 @@ export const getReporteMensual = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+ 
+
+export const getReporteMesAnterior = async (req, res) => {
+  try {
+    const today = new Date();
+    // Calcular el primer día del mes anterior
+    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    // Calcular el último día del mes anterior
+    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const reportes = await obtenerReporteTotales(startOfLastMonth, endOfLastMonth);
+    res.status(200).json(reportes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
