@@ -9,55 +9,51 @@ import { Venta, DetalleVenta, Producto } from '../models/index.js';
  */
 export async function obtenerReporteTotales(fechaInicio, fechaFin) {
   try {
-    // Totales de ventas completadas
-    const totalVentasCompletadas = await Venta.sum('total', {
+    // 1. Obtener todas las ventas completadas con sus totales y descuentos
+    const ventasCompletadas = await Venta.findAll({
+      attributes: ['id', 'total', 'descuento'],
       where: {
         estado: 'completada',
         created_at: {
           [Op.between]: [fechaInicio, fechaFin]
         }
-      }
+      },
+      raw: true
     });
 
-    // Subconsulta para calcular la ganancia de cada detalle de venta
-    const detallesGanancia = await DetalleVenta.findAll({
+    const totalVentas = ventasCompletadas.reduce((sum, venta) => sum + parseFloat(venta.total), 0);
+    const ventasIds = ventasCompletadas.map(venta => venta.id);
+
+    // Si no hay ventas, no hay nada que calcular
+    if (ventasIds.length === 0) {
+      return {
+        totalVentas: 0,
+        totalGanancias: 0
+      };
+    }
+    
+    // 2. Obtener el costo total de los productos vendidos para esas ventas
+    const costoVentas = await DetalleVenta.findAll({
       attributes: [
-        [fn('SUM', literal('`DetalleVenta`.`cantidad` * (`Producto`.`precio_venta` - `Producto`.`precio_compra`)')), 'gananciaBruta'],
-        [fn('SUM', literal('`DetalleVenta`.`cantidad` * `Producto`.`precio_venta`')), 'totalVentaDetalles']
+        [fn('SUM', literal('`DetalleVenta`.`cantidad` * `Producto`.`precio_compra`')), 'costoTotalProductos']
       ],
+      where: {
+        venta_id: {
+          [Op.in]: ventasIds
+        }
+      },
       include: [{
         model: Producto,
         attributes: []
-      }, {
-        model: Venta,
-        where: {
-          estado: 'completada',
-          created_at: {
-            [Op.between]: [fechaInicio, fechaFin]
-          }
-        },
-        attributes: ['descuento']
       }],
-      raw: true,
-      // La solución más segura: Usar el alias generado por Sequelize (`Ventum`) directamente en un literal
-      group: [literal('`Ventum`.`id`')] 
+      raw: true
     });
 
-    let totalGanancias = 0;
+    const costoTotalProductos = parseFloat(costoVentas[0]?.costoTotalProductos) || 0;
 
-    detallesGanancia.forEach(item => {
-      // Acceder al descuento del alias `Ventum` de forma segura
-      const gananciaBrutaVenta = parseFloat(item.gananciaBruta) || 0;
-      const descuentoVenta = parseFloat(item['Ventum.descuento']) || 0; 
-      const totalVentaDetalles = parseFloat(item.totalVentaDetalles) || 0;
-
-      // Calcular la ganancia neta de cada venta, ajustando por el descuento
-      const gananciaNetaVenta = gananciaBrutaVenta - (descuentoVenta * (gananciaBrutaVenta / totalVentaDetalles));
-
-      totalGanancias += gananciaNetaVenta;
-    });
-
-    const totalVentas = parseFloat(totalVentasCompletadas) || 0;
+    // 3. Calcular la ganancia total
+    // Ganancia = (Total de Ventas - Costo de los Productos)
+    const totalGanancias = totalVentas - costoTotalProductos;
     
     return {
       totalVentas: totalVentas,
