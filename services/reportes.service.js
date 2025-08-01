@@ -1,4 +1,4 @@
-import { Op, literal, fn, col } from 'sequelize';
+import { Op, literal, fn } from 'sequelize';
 import { Venta, DetalleVenta, Producto } from '../models/index.js';
 
 /**
@@ -39,16 +39,16 @@ export async function obtenerReporteTotales(fechaInicio, fechaFin) {
         attributes: ['descuento']
       }],
       raw: true,
-      // Usar la sintaxis de Sequelize para referenciar la columna del modelo asociado
-      group: [col('Venta.id')] 
+      // La solución más segura: Usar el alias generado por Sequelize (`Ventum`) directamente en un literal
+      group: [literal('`Ventum`.`id`')] 
     });
 
     let totalGanancias = 0;
 
     detallesGanancia.forEach(item => {
-      // El alias 'Venta.descuento' que Sequelize te da en raw:true es correcto
+      // Acceder al descuento del alias `Ventum` de forma segura
       const gananciaBrutaVenta = parseFloat(item.gananciaBruta) || 0;
-      const descuentoVenta = parseFloat(item['Venta.descuento']) || 0; 
+      const descuentoVenta = parseFloat(item['Ventum.descuento']) || 0; 
       const totalVentaDetalles = parseFloat(item.totalVentaDetalles) || 0;
 
       // Calcular la ganancia neta de cada venta, ajustando por el descuento
