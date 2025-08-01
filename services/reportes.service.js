@@ -1,4 +1,4 @@
-import { Op, literal } from 'sequelize';
+import { Op, literal, fn, col } from 'sequelize';
 import { Venta, DetalleVenta, Producto } from '../models/index.js';
 
 /**
@@ -22,12 +22,12 @@ export async function obtenerReporteTotales(fechaInicio, fechaFin) {
     // Subconsulta para calcular la ganancia de cada detalle de venta
     const detallesGanancia = await DetalleVenta.findAll({
       attributes: [
-        [literal(`SUM(DetalleVenta.cantidad * (Producto.precio_venta - Producto.precio_compra))`), 'gananciaBruta'],
-        [literal(`SUM(DetalleVenta.cantidad * Producto.precio_venta)`), 'totalVentaDetalles']
+        [fn('SUM', literal('`DetalleVenta`.`cantidad` * (`Producto`.`precio_venta` - `Producto`.`precio_compra`)')), 'gananciaBruta'],
+        [fn('SUM', literal('`DetalleVenta`.`cantidad` * `Producto`.`precio_venta`')), 'totalVentaDetalles']
       ],
       include: [{
         model: Producto,
-        attributes: [] // No traer atributos de Producto
+        attributes: []
       }, {
         model: Venta,
         where: {
@@ -38,18 +38,17 @@ export async function obtenerReporteTotales(fechaInicio, fechaFin) {
         },
         attributes: ['descuento']
       }],
-      raw: true, // Para obtener un objeto plano
-      group: ['Venta.id'] // Agrupar por venta para restar el descuento correctamente
+      raw: true,
+      // Usar la sintaxis de Sequelize para referenciar la columna del modelo asociado
+      group: [col('Venta.id')] 
     });
 
     let totalGanancias = 0;
-    let totalDescuentos = 0;
 
-    // Calcular la ganancia neta total restando el descuento de cada venta
     detallesGanancia.forEach(item => {
-      // Sequelize Raw trae las propiedades anidadas como 'Venta.descuento'
+      // El alias 'Venta.descuento' que Sequelize te da en raw:true es correcto
       const gananciaBrutaVenta = parseFloat(item.gananciaBruta) || 0;
-      const descuentoVenta = parseFloat(item['Venta.descuento']) || 0;
+      const descuentoVenta = parseFloat(item['Venta.descuento']) || 0; 
       const totalVentaDetalles = parseFloat(item.totalVentaDetalles) || 0;
 
       // Calcular la ganancia neta de cada venta, ajustando por el descuento
@@ -58,7 +57,6 @@ export async function obtenerReporteTotales(fechaInicio, fechaFin) {
       totalGanancias += gananciaNetaVenta;
     });
 
-    // Si no hay ventas, asegurarse de que los totales sean 0
     const totalVentas = parseFloat(totalVentasCompletadas) || 0;
     
     return {
