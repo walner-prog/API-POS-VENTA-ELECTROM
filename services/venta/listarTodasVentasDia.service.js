@@ -1,35 +1,19 @@
 import { Venta, Caja, Usuario } from "../../models/index.js";
 import { Op } from 'sequelize';
+// Importamos la función de utilidad y el offset
+import { getDailyDateRange, NICARAGUA_OFFSET_MINUTES } from "../../utils/dateUtils.js";
 
 export const obtenerVentasDelDia = async ({ pagina = 1, limite = 5, estado = null, caja_id = null }) => {
     const offset = (pagina - 1) * limite;
 
-    // --- COMIENZO DE LA CORRECCIÓN ---
-    // Usamos el offset de tu zona horaria local (Nicaragua: UTC-6)
-    const offsetUTC = -6 * 60; // -360 minutos
-    const ahora = new Date();
+   // Usamos la función de utilidad para obtener las fechas
+    const { inicioUTC, finUTC } = getDailyDateRange(NICARAGUA_OFFSET_MINUTES);
 
-    console.log(`Fecha y hora actual en UTC: ${ahora.toISOString()}`);
-    
-    // Obtener la fecha del día en tu zona horaria
-    const fechaLocal = new Date(ahora.getTime() + (ahora.getTimezoneOffset() * 60000) + (offsetUTC * 60000));
-    
-    // Establecer el inicio del día en tu zona horaria
-    const inicioDelDiaLocal = new Date(fechaLocal);
-    inicioDelDiaLocal.setHours(0, 0, 0, 0);
-
-    // Establecer el fin del día en tu zona horaria
-    const finDelDiaLocal = new Date(fechaLocal);
-    finDelDiaLocal.setHours(23, 59, 59, 999);
-    
-    // Convertir de nuevo a UTC para la consulta a la base de datos
-    const inicioUTC = new Date(inicioDelDiaLocal.getTime() - (inicioDelDiaLocal.getTimezoneOffset() * 60000));
-    const finUTC = new Date(finDelDiaLocal.getTime() - (finDelDiaLocal.getTimezoneOffset() * 60000));
-    // --- FIN DE LA CORRECCIÓN ---
+    console.log(`Rango de fechas para la consulta: ${inicioUTC.toISOString()} - ${finUTC.toISOString()}`);
 
     const whereClause = {
         created_at: {
-            [Op.between]: [inicioUTC, finUTC] // Usamos las fechas ya corregidas
+            [Op.between]: [inicioUTC, finUTC] // Usamos las fechas que ya vienen corregidas
         }
     };
 
