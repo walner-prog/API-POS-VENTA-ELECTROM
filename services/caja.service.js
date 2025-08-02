@@ -139,6 +139,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
                 cantidad_tickets: ventas.length,
                 dinero_final: dineroFinal,
                 hora_apertura: caja.hora_apertura, // Usar la hora de apertura original de la caja
+                created_at: caja.created_at,
                 hora_cierre: fechaFormateada, // Retorna la hora de cierre formateada de Nicaragua
                 usuario_id
             }
