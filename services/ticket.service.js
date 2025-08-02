@@ -5,19 +5,21 @@ import { getCurrentTimeInTimezone, NICARAGUA_OFFSET_MINUTES } from '../utils/dat
  // Esta función lista todos los tickets de una caja 
 
 export async function listarTicketsPorCajaService(caja_id) {
-    // Aplicamos la zona horaria correcta para la validación
+   // Aplicamos la zona horaria correcta para la validación
     const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
     const fechaLimite = new Date(nowNicaragua);
     fechaLimite.setDate(fechaLimite.getDate() - 30);
+    // Para simplificar, la hora de `fechaLimite` debe ser la medianoche del día límite
+    fechaLimite.setHours(0, 0, 0, 0);
 
     const caja = await Caja.findByPk(caja_id);
     if (!caja) throw { status: 404, message: 'Caja no encontrada.' };
 
-    // La validación ahora usa las fechas corregidas
-    if (new Date(caja.created_at) < fechaLimite || new Date(caja.created_at) > nowNicaragua) {
+    // --- Validación corregida ---
+    // Verificamos si la fecha de creación de la caja es anterior a la fecha límite de 30 días.
+    if (new Date(caja.created_at) < fechaLimite) {
         throw { status: 403, message: 'Caja fuera del rango de 30 días.' };
     }
-
     // Esta consulta trae TODAS las ventas de la caja, sin filtro de fecha
     const ventas = await Venta.findAll({
         where: { caja_id: caja.id },
