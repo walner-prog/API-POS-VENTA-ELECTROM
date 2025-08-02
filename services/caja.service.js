@@ -370,6 +370,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
             monto_inicial: caja.monto_inicial,
             monto_final: caja.monto_final,
             hora_apertura: formatearHora(caja.hora_apertura),
+            created_at: caja.created_at,
             closed_at: caja.closed_at,
             estado: caja.estado,
             hora_cierre: caja.closed_at,
