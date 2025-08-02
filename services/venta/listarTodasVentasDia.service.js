@@ -9,7 +9,7 @@ export const obtenerVentasDelDia = async ({ pagina = 1, limite = 5, estado = nul
    // Usamos la función de utilidad para obtener las fechas
     const { inicioUTC, finUTC } = getDailyDateRange(NICARAGUA_OFFSET_MINUTES);
 
-    console.log(`Rango de fechas para la consulta: ${inicioUTC.toISOString()} - ${finUTC.toISOString()}`);
+    //console.log(`Rango de fechas para la consulta: ${inicioUTC.toISOString()} - ${finUTC.toISOString()}`);
 
     const whereClause = {
         created_at: {
