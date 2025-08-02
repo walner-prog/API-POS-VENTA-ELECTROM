@@ -1,101 +1,177 @@
 import { Caja, Venta, Ticket, DetalleVenta, Producto } from '../models/index.js'
 import { Op } from 'sequelize'
+import { getCurrentTimeInTimezone, NICARAGUA_OFFSET_MINUTES } from '../utils/dateUtils.js';
 
- 
+ // Esta función lista todos los tickets de una caja 
 
- 
 export async function listarTicketsPorCajaService(caja_id) {
-  const fechaLimite = new Date()
-  fechaLimite.setDate(fechaLimite.getDate() - 30)
+    // Aplicamos la zona horaria correcta para la validación
+    const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
+    const fechaLimite = new Date(nowNicaragua);
+    fechaLimite.setDate(fechaLimite.getDate() - 30);
 
-  const caja = await Caja.findByPk(caja_id)
-  if (!caja) throw { status: 404, message: 'Caja no encontrada.' }
+    const caja = await Caja.findByPk(caja_id);
+    if (!caja) throw { status: 404, message: 'Caja no encontrada.' };
 
-  if (new Date(caja.created_at) < fechaLimite || new Date(caja.created_at) > new Date()) {
-    throw { status: 403, message: 'Caja fuera del rango de 30 días.' }
-  }
+    // La validación ahora usa las fechas corregidas
+    if (new Date(caja.created_at) < fechaLimite || new Date(caja.created_at) > nowNicaragua) {
+        throw { status: 403, message: 'Caja fuera del rango de 30 días.' };
+    }
 
-  const ventas = await Venta.findAll({
-    where: { caja_id: caja.id },
-    attributes: ['id']
-  })
+    // Esta consulta trae TODAS las ventas de la caja, sin filtro de fecha
+    const ventas = await Venta.findAll({
+        where: { caja_id: caja.id },
+        attributes: ['id']
+    });
 
-  const idsVentas = ventas.map(v => v.id)
-  if (idsVentas.length === 0) {
+    const idsVentas = ventas.map(v => v.id);
+    if (idsVentas.length === 0) {
+        return {
+            resumen: {
+                total_tickets: 0,
+                vendidos: 0,
+                anulados: 0,
+                total_cordobas: "0.00"
+            },
+            tickets: []
+        };
+    }
+
+    const tickets = await Ticket.findAll({
+        where: { venta_id: { [Op.in]: idsVentas } },
+        include: [
+            {
+                model: Venta,
+                attributes: ['total', 'created_at'],
+                include: [{
+                    model: DetalleVenta,
+                    include: [{
+                        model: Producto,
+                        attributes: ['nombre']
+                    }]
+                }]
+            }
+        ],
+        order: [['created_at', 'DESC']]
+    });
+
+    let vendidos = 0, anulados = 0, total_cordobas = 0;
+    tickets.forEach(ticket => {
+        if (ticket.estado === 'vendido') {
+            vendidos++;
+            total_cordobas += parseFloat(ticket.Ventum.total);
+        } else if (ticket.estado === 'anulado') {
+            anulados++;
+        }
+    });
+
     return {
-      resumen: {
-        total_tickets: 0,
-        vendidos: 0,
-        anulados: 0,
-        total_cordobas: "0.00"
-      },
-      tickets: []
-    }
-  }
-
-  const tickets = await Ticket.findAll({
-    where: {
-      venta_id: { [Op.in]: idsVentas }
-    },
-    include: [
-      {
-        model: Venta,
-        attributes: ['total', 'created_at'],
-        include: [{
-          model: DetalleVenta,
-          include: [{
-            model: Producto,
-            attributes: ['nombre']
-          }]
-        }]
-      }
-    ],
-    order: [['created_at', 'DESC']]
-  })
-
-  // Construcción de resumen
-  let vendidos = 0, anulados = 0, total_cordobas = 0
-
-  tickets.forEach(ticket => {
-    if (ticket.estado === 'vendido') {
-      vendidos++
-      total_cordobas += parseFloat(ticket.Ventum.total)
-    } else if (ticket.estado === 'anulado') {
-      anulados++
-    }
-  })
-
-  return {
-    resumen: {
-      total_tickets: tickets.length,
-      vendidos,
-      anulados,
-      total_cordobas: total_cordobas.toFixed(2)
-    },
-    tickets: tickets.map(t => ({
-      id: t.id,
-      numero_ticket: t.numero_ticket,
-      estado: t.estado,
-      observacion: t.observacion,
-      venta_id: t.venta_id,
-      created_at: t.created_at,
-      total: t.Ventum.total,
-      venta_fecha: t.Ventum.created_at,
-      detalles: t.Ventum.DetalleVenta.map(d => ({
-        producto: d.Producto?.nombre || 'N/A',
-        cantidad: d.cantidad,
-        precio_unitario: d.precio_unitario,
-        total_linea: d.total_linea
-      }))
-    }))
-  }
+        resumen: {
+            total_tickets: tickets.length,
+            vendidos,
+            anulados,
+            total_cordobas: total_cordobas.toFixed(2)
+        },
+        tickets: tickets.map(t => ({
+            id: t.id,
+            numero_ticket: t.numero_ticket,
+            estado: t.estado,
+            observacion: t.observacion,
+            venta_id: t.venta_id,
+            created_at: t.created_at,
+            total: t.Ventum.total,
+            venta_fecha: t.Ventum.created_at,
+            detalles: t.Ventum.DetalleVenta.map(d => ({
+                producto: d.Producto?.nombre || 'N/A',
+                cantidad: d.cantidad,
+                precio_unitario: d.precio_unitario,
+                total_linea: d.total_linea
+            }))
+        }))
+    };
 }
 
+// Esta función lista los tickets de hoy para una caja específica
+//  ESTA FUNCION NO SE USA EN NINGUN LADO, PERO SE DEJA POR SI SE NECESITA EN EL FUTURO
+export async function listarTicketsDeHoyPorCajaService(caja_id) {
+    // Obtenemos el rango de fechas de hoy en Nicaragua
+    const { inicioUTC, finUTC } = getDailyDateRange(NICARAGUA_OFFSET_MINUTES);
+
+    const tickets = await Ticket.findAll({
+        include: [
+            {
+                model: Venta,
+                attributes: ['total', 'created_at'],
+                where: { 
+                    caja_id: caja_id,
+                    // ✅ Filtramos para que solo traiga las ventas de HOY
+                    created_at: { [Op.between]: [inicioUTC, finUTC] } 
+                },
+                include: [{
+                    model: DetalleVenta,
+                    include: [{
+                        model: Producto,
+                        attributes: ['nombre']
+                    }]
+                }]
+            }
+        ],
+        order: [['created_at', 'DESC']]
+    });
+
+    // Si no hay tickets, retornamos un resumen vacío
+    if (tickets.length === 0) {
+        return {
+            resumen: {
+                total_tickets: 0,
+                vendidos: 0,
+                anulados: 0,
+                total_cordobas: "0.00"
+            },
+            tickets: []
+        };
+    }
+    
+    let vendidos = 0, anulados = 0, total_cordobas = 0;
+    tickets.forEach(ticket => {
+        if (ticket.estado === 'vendido') {
+            vendidos++;
+            total_cordobas += parseFloat(ticket.Ventum.total);
+        } else if (ticket.estado === 'anulado') {
+            anulados++;
+        }
+    });
+
+    return {
+        resumen: {
+            total_tickets: tickets.length,
+            vendidos,
+            anulados,
+            total_cordobas: total_cordobas.toFixed(2)
+        },
+        tickets: tickets.map(t => ({
+            id: t.id,
+            numero_ticket: t.numero_ticket,
+            estado: t.estado,
+            observacion: t.observacion,
+            venta_id: t.venta_id,
+            created_at: t.created_at,
+            total: t.Ventum.total,
+            venta_fecha: t.Ventum.created_at,
+            detalles: t.Ventum.DetalleVenta.map(d => ({
+                producto: d.Producto?.nombre || 'N/A',
+                cantidad: d.cantidad,
+                precio_unitario: d.precio_unitario,
+                total_linea: d.total_linea
+            }))
+        }))
+    };
+}
 
  
  
 // Este servicio permite anular un ticket específico, actualizando su estado y observación
-//  ESTA FUCION NO SE USA EN NINGUN LADO, PERO SE DEJA POR SI SE NECESITA EN EL FUTURO
+ 
 
 export async function anularTicketService(ticket_id, observacion, usuario_id) {
   const ticket = await Ticket.findByPk(ticket_id)
@@ -120,6 +196,7 @@ export async function anularTicketService(ticket_id, observacion, usuario_id) {
 
   return ticket
 }
+
 
 
 // Esta función elimina todos los tickets asociados a una caja específica pero no afecta las ventas ni los detalles de venta
