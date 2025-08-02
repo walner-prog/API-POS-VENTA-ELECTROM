@@ -5,18 +5,19 @@
  * @returns {{inicioUTC: Date, finUTC: Date}} - Un objeto con las fechas de inicio y fin en UTC.
  */
 export function getDailyDateRange(offsetUTC) {
-    // 1. Obtenemos la hora actual del servidor.
     const ahora = new Date();
     
-    // 2. Calculamos el inicio del día en la zona horaria local (Nicaragua).
-    // Para ello, ajustamos la hora actual del servidor por el offset de Nicaragua.
-    const inicioLocal = new Date(ahora.getTime() + (ahora.getTimezoneOffset() * 60000) + (offsetUTC * 60000));
-    inicioLocal.setHours(0, 0, 0, 0); // Establecemos las 00:00 del día local.
+    // Convertimos el offset de minutos a milisegundos
+    const offsetMilisegundos = offsetUTC * 60000;
     
-    // 3. Convertimos ese inicio local de vuelta a UTC para la consulta.
-    const inicioUTC = new Date(inicioLocal.getTime() - (inicioLocal.getTimezoneOffset() * 60000));
+    // Obtenemos el inicio del día local de Nicaragua
+    const inicioDelDiaLocal = new Date(ahora.getTime() + offsetMilisegundos);
+    inicioDelDiaLocal.setUTCHours(0, 0, 0, 0);
+    
+    // La fecha de inicio del día local de Nicaragua, convertida a UTC
+    const inicioUTC = new Date(inicioDelDiaLocal.getTime() - offsetMilisegundos);
 
-    // 4. Calculamos el fin del día en UTC (24 horas después del inicio, menos 1ms).
+    // El fin del día es 24 horas después del inicio, menos 1 milisegundo
     const finUTC = new Date(inicioUTC.getTime() + (24 * 60 * 60 * 1000) - 1);
 
     return { inicioUTC, finUTC };
