@@ -1,157 +1,152 @@
 import sequelize from "../config/database.js";
 import { Op } from 'sequelize'
 import { Caja, Venta, Egreso, DetalleVenta, Producto,Usuario } from '../models/index.js'
+import { getCurrentTimeInTimezone, NICARAGUA_OFFSET_MINUTES }  from "../utils/dateUtils.js";
+
  
 
 export async function abrirCajaService({ monto_inicial, observacion, nombre }, usuario_id_cajero) {
-  const t = await sequelize.transaction();
-  try {
+    const t = await sequelize.transaction();
+    try {
+        if (monto_inicial <= 0) {
+            throw { status: 400, message: 'El monto inicial debe ser mayor a 0.' };
+        }
+        if (monto_inicial == null) {
+            throw { status: 400, message: 'Debe indicar un monto inicial para abrir la caja.' };
+        }
+        monto_inicial = Number(monto_inicial);
+        if (isNaN(monto_inicial)) {
+            throw { status: 400, message: "El monto inicial es obligatorio y debe ser un número válido" };
+        }
 
-      // monto debe ser mayor a 0
-    if (monto_inicial <= 0) {
-      throw { status: 400, message: 'El monto inicial debe ser mayor a 0.' };
+        const cajeroUser = await Usuario.findByPk(usuario_id_cajero, { transaction: t });
+        if (!cajeroUser) {
+            throw {
+                status: 404,
+                message: 'No se encontró el usuario especificado. Verifique el usuario antes de abrir la caja.'
+            };
+        }
+
+        const cajaAbierta = await Caja.findOne({
+            where: { usuario_id: usuario_id_cajero, estado: 'abierta' },
+            transaction: t
+        });
+
+        if (cajaAbierta) {
+            throw {
+                status: 400,
+                message: `El usuario ${cajeroUser.nombre} ya tiene una caja abierta. Cierre la caja actual antes de abrir una nueva.`
+            };
+        }
+
+        // --- APLICACIÓN DE LA ZONA HORARIA ---
+        const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
+        const hora_apertura_string = nowNicaragua.toTimeString().split(' ')[0]; // Para almacenar como string de hora local
+
+        const caja = await Caja.create({
+            nombre,
+            monto_inicial,
+            observacion,
+            usuario_id: usuario_id_cajero,
+            abierto_por: usuario_id_cajero,
+            hora_apertura: hora_apertura_string // Almacena la hora local de Nicaragua como string
+        }, { transaction: t });
+
+        await t.commit();
+
+        // Formatea la fecha para el mensaje de respuesta usando la hora de Nicaragua
+        const fechaFormateada = nowNicaragua.toLocaleString('es-NI', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+            hour12: true
+        });
+
+        return {
+            success: true,
+            message: `La caja "${caja.nombre}" se abrió correctamente para el usuario ${cajeroUser.nombre} con un monto inicial de ${parseFloat(caja.monto_inicial).toFixed(2)}. Hora de apertura: ${fechaFormateada}.`,
+            caja: {
+                id: caja.id,
+                nombre: caja.nombre,
+                monto_inicial: parseFloat(caja.monto_inicial).toFixed(2),
+                hora_apertura: fechaFormateada // Retorna la hora formateada de Nicaragua
+            }
+        };
+    } catch (error) {
+        await t.rollback();
+        throw error;
     }
-
-    if (monto_inicial == null) {
-      throw { status: 400, message: 'Debe indicar un monto inicial para abrir la caja.' };
-    }
-
-    // ✅ Convertimos a número antes de validar
-    monto_inicial = Number(monto_inicial);
-
-    if (isNaN(monto_inicial)) {
-      throw { status: 400, message: "El monto inicial es obligatorio y debe ser un número válido" };
-    }
-
-    const cajeroUser = await Usuario.findByPk(usuario_id_cajero, { transaction: t });
-    if (!cajeroUser) {
-      throw {
-        status: 404,
-        message: 'No se encontró el usuario especificado. Verifique el usuario antes de abrir la caja.'
-      };
-    }
-
-    const cajaAbierta = await Caja.findOne({
-      where: { usuario_id: usuario_id_cajero, estado: 'abierta' },
-      transaction: t
-    });
-
-    if (cajaAbierta) {
-      throw {
-        status: 400,
-        message: `El usuario ${cajeroUser.nombre} ya tiene una caja abierta. Cierre la caja actual antes de abrir una nueva.`
-      };
-    }
-
-    const now = new Date();
-    const hora_apertura = now.toTimeString().split(' ')[0];
-
-    const caja = await Caja.create({
-      nombre,
-      monto_inicial,
-      observacion,
-      usuario_id: usuario_id_cajero,
-      abierto_por: usuario_id_cajero,
-      hora_apertura
-    }, { transaction: t });
-
-    await t.commit();
-
-    const fechaFormateada = now.toLocaleString('es-NI', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-      hour12: true
-    });
-
-    return {
-      success: true,
-      message: `La caja "${caja.nombre}" se abrió correctamente para el usuario ${cajeroUser.nombre} con un monto inicial de ${parseFloat(caja.monto_inicial).toFixed(2)}. Hora de apertura: ${fechaFormateada}.`,
-      caja: {
-        id: caja.id,
-        nombre: caja.nombre,
-        monto_inicial: parseFloat(caja.monto_inicial).toFixed(2),
-        hora_apertura: fechaFormateada
-      }
-    };
-  } catch (error) {
-    await t.rollback();
-    throw error;
-  }
 }
 
 
 
 export async function cerrarCajaService(caja_id, usuario_id) {
-  const t = await sequelize.transaction();
+    const t = await sequelize.transaction();
 
-  try {
-    const caja = await Caja.findOne({ where: { id: caja_id, usuario_id, estado: 'abierta' }, transaction: t });
-    if (!caja) throw { status: 404, message: 'Caja no encontrada o ya cerrada' };
+    try {
+        const caja = await Caja.findOne({ where: { id: caja_id, usuario_id, estado: 'abierta' }, transaction: t });
+        if (!caja) throw { status: 404, message: 'Caja no encontrada o ya cerrada' };
 
-    const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' }, transaction: t });
-    const totalVentas = ventas.reduce((acc, venta) => acc + parseFloat(venta.total), 0);
+        const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' }, transaction: t });
+        const totalVentas = ventas.reduce((acc, venta) => acc + parseFloat(venta.total), 0);
 
-    const totalEgresos = await Egreso.sum('monto', {
-      where: { caja_id: caja.id, estado: 'activo' },
-      transaction: t
-    }) || 0;
+        const totalEgresos = await Egreso.sum('monto', {
+            where: { caja_id: caja.id, estado: 'activo' },
+            transaction: t
+        }) || 0;
 
-    const detalles = await DetalleVenta.findAll({
-      include: [
-        { model: Producto, attributes: ['precio_compra'] },
-        { model: Venta, where: { caja_id: caja.id, estado: 'completada' }, attributes: [] }
-      ],
-      transaction: t
-    });
+        const detalles = await DetalleVenta.findAll({
+            include: [
+                { model: Producto, attributes: ['precio_compra'] },
+                { model: Venta, where: { caja_id: caja.id, estado: 'completada' }, attributes: [] }
+            ],
+            transaction: t
+        });
 
+        const total_precio_compra = detalles.reduce((acc, d) => acc + parseFloat(d.cantidad) * parseFloat(d.Producto.precio_compra), 0);
+        const total_precio_venta = detalles.reduce((acc, d) => acc + parseFloat(d.total_linea), 0);
+        const ganancia = total_precio_venta - total_precio_compra;
 
-    
+        const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
 
-    const total_precio_compra = detalles.reduce((acc, d) => acc + parseFloat(d.cantidad) * parseFloat(d.Producto.precio_compra), 0);
-    const total_precio_venta = detalles.reduce((acc, d) => acc + parseFloat(d.total_linea), 0);
-    const ganancia = total_precio_venta - total_precio_compra;
+        // --- APLICACIÓN DE LA ZONA HORARIA ---
+        const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
 
-    const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+        caja.monto_final = dineroFinal;
+        caja.estado = 'cerrada';
+        caja.closed_at = nowNicaragua; // Almacena la fecha/hora de cierre en Nicaragua (Sequelize la convertirá a UTC si es DATETIME)
 
-    caja.monto_final = dineroFinal;
-    caja.estado = 'cerrada';
-    caja.closed_at = new Date();
+        await caja.save({ transaction: t });
 
-        const now = new Date();
-    const hora_apertura = now.toTimeString().split(' ')[0];
-    
+        await t.commit();
 
-    await caja.save({ transaction: t });
+        // Formatea la fecha para el mensaje de respuesta usando la hora de Nicaragua
+        const fechaFormateada = nowNicaragua.toLocaleString('es-NI', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+            hour12: true
+        });
 
-    await t.commit();
-
-       const fechaFormateada = now.toLocaleString('es-NI', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-      hour12: true
-    });
-
-    return {
-      success: true,
-      message: 'Caja cerrada correctamente.',
-      cierre: {
-      monto_inicial: caja.monto_inicial,
-      total_ventas: totalVentas,
-      total_egresos: totalEgresos,
-      total_precio_compra,
-      total_precio_venta,
-      ganancia,
-      cantidad_tickets: ventas.length,
-      dinero_final: dineroFinal,
-      hora_apertura: fechaFormateada,
-      hora_cierre: caja.closed_at,
-      usuario_id
-      }
-    };
-  } catch (error) {
-    await t.rollback();
-    throw error;
-  }
+        return {
+            success: true,
+            message: 'Caja cerrada correctamente.',
+            cierre: {
+                monto_inicial: caja.monto_inicial,
+                total_ventas: totalVentas,
+                total_egresos: totalEgresos,
+                total_precio_compra,
+                total_precio_venta,
+                ganancia,
+                cantidad_tickets: ventas.length,
+                dinero_final: dineroFinal,
+                hora_apertura: caja.hora_apertura, // Usar la hora de apertura original de la caja
+                hora_cierre: fechaFormateada, // Retorna la hora de cierre formateada de Nicaragua
+                usuario_id
+            }
+        };
+    } catch (error) {
+        await t.rollback();
+        throw error;
+    }
 }
 
 

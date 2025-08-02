@@ -66,5 +66,19 @@ export function getMonthlyDateRange(offsetUTC) {
     return { inicioUTC, finUTC };
 }
 
+/**
+ * Obtiene la fecha y hora actual ajustada a una zona horaria específica.
+ * @param {number} offsetUTC - El offset de la zona horaria en minutos (ej: -360 para UTC-6).
+ * @returns {Date} - Un objeto Date que representa la hora actual en la zona horaria deseada.
+ */
+export function getCurrentTimeInTimezone(offsetUTC) {
+    const ahora = new Date();
+    // Calcula los milisegundos UTC actuales del servidor
+    const utcNowMillis = ahora.getTime() + ahora.getTimezoneOffset() * 60000; 
+    // Aplica el offset de la zona horaria deseada para obtener la hora local en milisegundos
+    const targetLocalMillis = utcNowMillis + offsetUTC * 60000; 
+    return new Date(targetLocalMillis);
+}
+
 // Puedes exportar un valor para Nicaragua directamente para facilitar su uso
 export const NICARAGUA_OFFSET_MINUTES = -6 * 60; // UTC-6
