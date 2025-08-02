@@ -23,5 +23,48 @@ export function getDailyDateRange(offsetUTC) {
     return { inicioUTC, finUTC };
 }
 
+/**
+ * Obtiene el rango de fechas para la semana actual en una zona horaria específica.
+ */
+export function getWeeklyDateRange(offsetUTC) {
+    const ahora = new Date();
+    const offsetMilisegundos = offsetUTC * 60000;
+    const inicioLocal = new Date(ahora.getTime() + offsetMilisegundos);
+    
+    // Obtener el inicio de la semana (Lunes)
+    const diaDeLaSemana = inicioLocal.getDay(); // 0 = Domingo, 1 = Lunes...
+    const diff = inicioLocal.getDate() - diaDeLaSemana + (diaDeLaSemana === 0 ? -6 : 1); // Ajuste para que la semana empiece en Lunes
+    inicioLocal.setDate(diff);
+    inicioLocal.setHours(0, 0, 0, 0);
+
+    const inicioUTC = new Date(inicioLocal.getTime() - offsetMilisegundos);
+    const finUTC = new Date(inicioUTC.getTime() + (7 * 24 * 60 * 60 * 1000) - 1);
+    
+    return { inicioUTC, finUTC };
+}
+
+/**
+ * Obtiene el rango de fechas para el mes actual en una zona horaria específica.
+ */
+export function getMonthlyDateRange(offsetUTC) {
+    const ahora = new Date();
+    const offsetMilisegundos = offsetUTC * 60000;
+    const inicioLocal = new Date(ahora.getTime() + offsetMilisegundos);
+
+    // Obtener el inicio del mes
+    inicioLocal.setDate(1);
+    inicioLocal.setHours(0, 0, 0, 0);
+
+    const inicioUTC = new Date(inicioLocal.getTime() - offsetMilisegundos);
+    
+    // El fin del mes es el inicio del mes siguiente, menos 1 milisegundo
+    const finDelMesLocal = new Date(inicioLocal);
+    finDelMesLocal.setMonth(finDelMesLocal.getMonth() + 1);
+    finDelMesLocal.setHours(0, 0, 0, 0);
+    const finUTC = new Date(finDelMesLocal.getTime() - offsetMilisegundos - 1);
+    
+    return { inicioUTC, finUTC };
+}
+
 // Puedes exportar un valor para Nicaragua directamente para facilitar su uso
 export const NICARAGUA_OFFSET_MINUTES = -6 * 60; // UTC-6

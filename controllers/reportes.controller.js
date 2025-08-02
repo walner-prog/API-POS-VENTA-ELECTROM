@@ -1,64 +1,63 @@
 import { obtenerReporteTotales } from '../services/reportes.service.js';
+import { 
+    getDailyDateRange, 
+    getWeeklyDateRange, 
+    getMonthlyDateRange, 
+    NICARAGUA_OFFSET_MINUTES 
+}  from "../utils/dateUtils.js";
 
+// --- REPORTE DIARIO ---
 export const getReporteDiario = async (req, res) => {
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const reportes = await obtenerReporteTotales(today, tomorrow);
-    res.status(200).json(reportes);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+    try {
+        // Usamos la función de utilidad para obtener el rango de "hoy" en Nicaragua
+        const { inicioUTC, finUTC } = getDailyDateRange(NICARAGUA_OFFSET_MINUTES);
+        const reportes = await obtenerReporteTotales(inicioUTC, finUTC);
+        res.status(200).json(reportes);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
+// --- REPORTE SEMANAL ---
 export const getReporteSemanal = async (req, res) => {
-  try {
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Domingo, 6 = Sábado
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - dayOfWeek);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7);
-    
-    const reportes = await obtenerReporteTotales(startOfWeek, endOfWeek);
-    res.status(200).json(reportes);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+    try {
+        // Usamos la función de utilidad para obtener el rango de "esta semana" en Nicaragua
+        const { inicioUTC, finUTC } = getWeeklyDateRange(NICARAGUA_OFFSET_MINUTES);
+        const reportes = await obtenerReporteTotales(inicioUTC, finUTC);
+        res.status(200).json(reportes);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
+// --- REPORTE MENSUAL ---
 export const getReporteMensual = async (req, res) => {
-  try {
-    const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-    
-    const reportes = await obtenerReporteTotales(startOfMonth, endOfMonth);
-    res.status(200).json(reportes);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+    try {
+        // Usamos la función de utilidad para obtener el rango de "este mes" en Nicaragua
+        const { inicioUTC, finUTC } = getMonthlyDateRange(NICARAGUA_OFFSET_MINUTES);
+        const reportes = await obtenerReporteTotales(inicioUTC, finUTC);
+        res.status(200).json(reportes);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
-
- 
-
+// --- REPORTE MES ANTERIOR ---
 export const getReporteMesAnterior = async (req, res) => {
-  try {
-    const today = new Date();
-    // Calcular el primer día del mes anterior
-    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    // Calcular el último día del mes anterior
-    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-    const reportes = await obtenerReporteTotales(startOfLastMonth, endOfLastMonth);
-    res.status(200).json(reportes);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+    try {
+        // La lógica del mes anterior es un poco diferente
+        const { inicioUTC, finUTC } = getMonthlyDateRange(NICARAGUA_OFFSET_MINUTES);
+        
+        // Ajustamos las fechas para que sean del mes anterior
+        const inicioMesAnterior = new Date(inicioUTC);
+        inicioMesAnterior.setUTCMonth(inicioMesAnterior.getUTCMonth() - 1);
+        
+        const finMesAnterior = new Date(finUTC);
+        finMesAnterior.setUTCMonth(finMesAnterior.getUTCMonth() - 1);
+        
+        const reportes = await obtenerReporteTotales(inicioMesAnterior, finMesAnterior);
+        res.status(200).json(reportes);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
