@@ -472,67 +472,64 @@ export async function cajaActualService(usuario_id) {
 }
 
 export const listarCajasParaSelectorService = async () => {
-  const hoyInicio = new Date();
-  hoyInicio.setHours(0, 0, 0, 0);
+  // Usamos la función de utilidad para obtener la fecha de hoy en Nicaragua
+  const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
 
-  const hoyFin = new Date();
-  hoyFin.setHours(23, 59, 59, 999);
+  // Calculamos la fecha límite (hace 31 días) en la zona horaria de Nicaragua
+  const fechaLimite = new Date(nowNicaragua);
+  fechaLimite.setDate(fechaLimite.getDate() - 31);
+  // El resto de la fecha/hora es la misma, solo se ajusta el día
 
-  const fechaLimite = new Date();
-  fechaLimite.setDate(fechaLimite.getDate() - 31);
+  // Todas las cajas abiertas
+  const cajasAbiertas = await Caja.findAll({
+    where: {
+      estado: 'abierta'
+    },
+    include: [
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre']
+      }
+    ],
+    attributes: ['id', 'created_at'],
+    order: [['created_at', 'DESC']]
+  });
 
-  // Todas las cajas abiertas hoy
- 
-const cajasAbiertasHoy = await Caja.findAll({
-  where: {
-    estado: 'abierta'
-  },
-  include: [
-    {
-      model: Usuario,
-      attributes: ['id', 'nombre']
-    }
-  ],
-  attributes: ['id', 'created_at'],
-  order: [['created_at', 'DESC']]
-});
+  // Cajas cerradas en los últimos 31 días, basado en la zona horaria de Nicaragua
+  const cajasCerradas = await Caja.findAll({
+    where: {
+      estado: 'cerrada',
+      created_at: { [Op.gte]: fechaLimite }
+    },
+    include: [
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre']
+      }
+    ],
+    attributes: ['id', 'created_at', 'closed_at'],
+    order: [['created_at', 'DESC']]
+  });
 
+  // Mapear cajas abiertas
+  const cajasAbiertasMapeadas = cajasAbiertas.map(caja => ({
+    id: caja.id,
+    fecha_apertura: caja.created_at,
+    cajero: caja.Usuario?.nombre || 'Desconocido'
+  }));
 
-  // Cajas cerradas en los últimos 31 días
-  const cajasCerradas = await Caja.findAll({
-    where: {
-      estado: 'cerrada',
-      created_at: { [Op.gte]: fechaLimite }
-    },
-    include: [
-      {
-        model: Usuario,
-        attributes: ['id', 'nombre']
-      }
-    ],
-    attributes: ['id', 'created_at', 'closed_at'],
-    order: [['created_at', 'DESC']]
-  });
+  // Mapear cajas cerradas
+  const cajasCerradasMapeadas = cajasCerradas.map(caja => ({
+    id: caja.id,
+    fecha_apertura: caja.created_at,
+    fecha_cierre: caja.closed_at,
+    cajero: caja.Usuario?.nombre || 'Desconocido'
+  }));
 
-  // Mapear cajas abiertas
-  const cajasAbiertas = cajasAbiertasHoy.map(caja => ({
-    id: caja.id,
-    fecha_apertura: caja.created_at,
-    cajero: caja.Usuario?.nombre || 'Desconocido'
-  }));
-
-  // Mapear cajas cerradas
-  const cajas = cajasCerradas.map(caja => ({
-    id: caja.id,
-    fecha_apertura: caja.created_at,
-    fecha_cierre: caja.closed_at,
-    cajero: caja.Usuario?.nombre || 'Desconocido'
-  }));
-
-  return {
-    cajasAbiertasHoy: cajasAbiertas,
-    cajasCerradas: cajas
-  };
+  return {
+    cajasAbiertas: cajasAbiertasMapeadas,
+    cajasCerradas: cajasCerradasMapeadas
+  };
 };
 
 
