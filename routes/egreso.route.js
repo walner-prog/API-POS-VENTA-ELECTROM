@@ -2,7 +2,7 @@ import express from 'express'
 import { crearEgreso, listarEgresosPorCaja,anularEgreso,actualizarEgreso} from '../controllers/egreso.controller.js'
 import authMiddleware from '../middlewares/auth.js'
 import soloCreadorOAdmin from '../middlewares/soloCreadorOAdminEliminaEgreso.js';
-import tienePermiso from '../middlewares/tienePermiso.js'
+ 
 
 
 
