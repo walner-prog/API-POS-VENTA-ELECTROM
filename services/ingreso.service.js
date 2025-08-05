@@ -21,28 +21,42 @@ export async function actualizarIngresoService(id, data) {
 
  
 export async function listarIngresosPorCajaService(caja_id, query) {
-  const { page = 1, limit = 10, tipo = '' } = query;
-  const where = { caja_id };
-  if (tipo) where.tipo = tipo;
+  const { page = 1, limit = 5, tipo = '' } = query;
 
-  const { count, rows } = await Ingreso.findAndCountAll({
-    where,
-    include: [
-      {
-        model: Caja,
-        attributes: ['id', 'nombre', 'monto_inicial', 'estado', 'hora_apertura', 'closed_at']
-      },
-      {
-        model: Usuario,
-        attributes: ['id', 'nombre', 'role_id']
-      }
-    ],
-    order: [['created_at', 'DESC']],
-    offset: (page - 1) * limit,
-    limit: parseInt(limit)
-  });
+  // Lógica para limitar la búsqueda a ingresos de los últimos 31 días
+  const fechaLimite = new Date();
+  fechaLimite.setDate(fechaLimite.getDate() - 31);
 
-  return { total: count, ingresos: rows };
+  const where = {
+    caja_id,
+    created_at: { [Op.gte]: fechaLimite }
+  };
+
+  if (tipo) {
+    // Si deseas una búsqueda flexible como en egresos, usa [Op.like]
+    // where.tipo = { [Op.like]: `%${tipo}%` };
+    // Si prefieres la búsqueda exacta, déjalo así
+    where.tipo = tipo;
+  }
+
+  const { count, rows } = await Ingreso.findAndCountAll({
+    where,
+    include: [
+      {
+        model: Caja,
+        attributes: ['id', 'nombre', 'monto_inicial', 'estado', 'hora_apertura', 'closed_at']
+      },
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre', 'role_id']
+      }
+    ],
+    order: [['created_at', 'DESC']],
+    offset: (page - 1) * limit,
+    limit: parseInt(limit)
+  });
+
+  return { total: count, ingresos: rows };
 }
 
 
