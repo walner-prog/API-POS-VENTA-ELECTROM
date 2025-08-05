@@ -34,7 +34,7 @@ export async function listarIngresosPorCajaService(caja_id, query) {
       },
       {
         model: Usuario,
-        attributes: ['id', 'nombre'] // solo nombre, puedes agregar más si necesitas
+        attributes: ['id', 'nombre', 'rol'] // solo nombre, puedes agregar más si necesitas
       }
     ],
     order: [['created_at', 'DESC']],
