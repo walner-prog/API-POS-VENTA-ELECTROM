@@ -12,6 +12,7 @@ import MovimientoCaja from './MovimientoCaja.js'
 import DetalleVentaLote from './DetalleVentaLote.js';
 import HistorialProducto from './HistorialProductoPrecio.js';
 import Permiso from './Permiso.js'
+import ClaveCancelacion from './ClaveCancelacion.js'
 
  
 
@@ -53,6 +54,10 @@ Egreso.belongsTo(Usuario, { foreignKey: 'usuario_id' })
 
 Producto.hasMany(InventarioLote, { foreignKey: 'producto_id' })
 InventarioLote.belongsTo(Producto, { foreignKey: 'producto_id' })
+Egreso.hasMany(InventarioLote, { foreignKey: 'egreso_id' });
+InventarioLote.belongsTo(Egreso, { foreignKey: 'egreso_id' });
+
+ 
 
 
  
@@ -70,5 +75,5 @@ export {
   Usuario, Rol, Categoria, Producto, Caja,
   Venta, DetalleVenta, Ticket, Egreso, InventarioLote,
   MovimientoCaja, DetalleVentaLote, HistorialProducto,
-  Permiso
+  Permiso, ClaveCancelacion
 }

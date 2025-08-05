@@ -7,6 +7,7 @@ import ticketRoutes from './ticket.routes.js'
 import egresoRoutes from './egreso.route.js'
 import productoRoutes from './producto.route.js'
 import reportesRoutes from './reportes.routes.js';
+import clavesCancelacionRoutes from './clavesCancelacion.routes.js';
 
 export {
   usuarioRoutes,
@@ -17,5 +18,6 @@ export {
   ticketRoutes,
   egresoRoutes,
   productoRoutes,
-  reportesRoutes
+  reportesRoutes,
+  clavesCancelacionRoutes
 }
