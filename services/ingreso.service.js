@@ -1,6 +1,5 @@
 import { Caja, Usuario,Ingreso } from '../models/index.js'
-import { Op } from 'sequelize'
-
+ 
 async function validarCajaAbierta(usuario_id) {
   const caja = await Caja.findOne({ where: { usuario_id, estado: 'abierta' } });
   if (!caja) throw new Error('No hay una caja abierta');
@@ -22,43 +21,28 @@ export async function actualizarIngresoService(id, data) {
 
  
 export async function listarIngresosPorCajaService(caja_id, query) {
-  const { page = 1, limit = 5, tipo = '', fechaInicio, fechaFin } = query;
-
+  const { page = 1, limit = 5, tipo = '' } = query;
   const where = { caja_id };
+  if (tipo) where.tipo = tipo;
 
-  if (tipo) {
-    where.tipo = tipo;
-  }
+  const { count, rows } = await Ingreso.findAndCountAll({
+    where,
+    include: [
+      {
+        model: Caja,
+        attributes: ['id', 'nombre', 'monto_inicial', 'estado', 'hora_apertura', 'closed_at']
+      },
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre', 'role_id']
+      }
+    ],
+    order: [['created_at', 'DESC']],
+    offset: (page - 1) * limit,
+    limit: parseInt(limit)
+  });
 
-  // Lógica para filtrar por rango de fechas si se proporcionan
-  if (fechaInicio && fechaFin) {
-    // Usamos el operador [Op.between] para buscar en un rango de fechas
-    where.created_at = { [Op.between]: [new Date(fechaInicio), new Date(fechaFin)] };
-  } else {
-    // Si no se proporcionan fechas, mantén el filtro por defecto de 31 días
-    const fechaLimite = new Date();
-    fechaLimite.setDate(fechaLimite.getDate() - 31);
-    where.created_at = { [Op.gte]: fechaLimite };
-  }
-
-  const { count, rows } = await Ingreso.findAndCountAll({
-    where,
-    include: [
-      {
-        model: Caja,
-        attributes: ['id', 'nombre', 'monto_inicial', 'estado', 'hora_apertura', 'closed_at']
-      },
-      {
-        model: Usuario,
-        attributes: ['id', 'nombre', 'role_id']
-      }
-    ],
-    order: [['created_at', 'DESC']],
-    offset: (page - 1) * limit,
-    limit: parseInt(limit)
-  });
-
-  return { total: count, ingresos: rows };
+  return { total: count, ingresos: rows };
 }
 
 
