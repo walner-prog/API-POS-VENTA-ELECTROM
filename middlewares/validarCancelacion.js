@@ -1,29 +1,41 @@
+// middlewares/validarCancelacion.js
 import bcrypt from 'bcryptjs';
 import ClaveCancelacion from '../models/ClaveCancelacion.js';
+import Joi from 'joi';
 
-export async function validarCancelacion(body) {
-  const { clave } = body;
+export async function validarCancelacion(req, res, next) {
+  const { clave, motivo } = req.body;
 
-  if (!clave) {
-    throw { status: 400, message: "Debe ingresar una clave para cancelar la venta." };
+  // Validar motivo con Joi
+  const schema = Joi.object({
+    motivo: Joi.string().min(3).required(),
+    clave: Joi.string().required(),
+  });
+
+  try {
+    await schema.validateAsync({ clave, motivo });
+  } catch (err) {
+    return res.status(400).json({ message: `Motivo o clave inválido: ${err.message}` });
   }
 
+  // Validar clave activa
   const claveActiva = await ClaveCancelacion.findOne({ where: { activa: true } });
 
   if (!claveActiva) {
-    throw { status: 403, message: "No hay clave activa para cancelación." };
+    return res.status(403).json({ message: "No hay clave activa para cancelación." });
   }
 
   const esValida = await bcrypt.compare(clave, claveActiva.clave_hash);
 
   if (!esValida) {
-    throw { status: 401, message: "Clave inválida o no activa." };
+    return res.status(401).json({ message: "Clave inválida o no activa." });
   }
 
-  // (Opcional) Validar si ya expiró
+  // Validar expiración
   if (claveActiva.expira_en && new Date() > new Date(claveActiva.expira_en)) {
-    throw { status: 403, message: "La clave ha expirado." };
+    return res.status(403).json({ message: "La clave ha expirado." });
   }
 
-  return true;
+  // Si todo está bien, seguir
+  next();
 }
