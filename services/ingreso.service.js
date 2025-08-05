@@ -1,6 +1,5 @@
-import { Caja, Usuario } from '../models/index.js'
-import { Ingreso } from '../models/Ingreso.js'; // asegúrate de importar esto también
-
+import { Caja, Usuario,Ingreso } from '../models/index.js'
+ 
 async function validarCajaAbierta(usuario_id) {
   const caja = await Caja.findOne({ where: { usuario_id, estado: 'abierta' } });
   if (!caja) throw new Error('No hay una caja abierta');
