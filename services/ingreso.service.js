@@ -1,5 +1,6 @@
 import { Caja, Usuario,Ingreso } from '../models/index.js'
- 
+import { Op } from 'sequelize'
+
 async function validarCajaAbierta(usuario_id) {
   const caja = await Caja.findOne({ where: { usuario_id, estado: 'abierta' } });
   if (!caja) throw new Error('No hay una caja abierta');
@@ -21,23 +22,24 @@ export async function actualizarIngresoService(id, data) {
 
  
 export async function listarIngresosPorCajaService(caja_id, query) {
-  const { page = 1, limit = 5, tipo = '' } = query;
+  const { page = 1, limit = 5, tipo = '', fechaInicio, fechaFin } = query;
 
-  // Lógica para limitar la búsqueda a ingresos de los últimos 31 días
-  const fechaLimite = new Date();
-  fechaLimite.setDate(fechaLimite.getDate() - 31);
+  const where = { caja_id };
 
-  const where = {
-    caja_id,
-    created_at: { [Op.gte]: fechaLimite }
-  };
-
-  if (tipo) {
-    // Si deseas una búsqueda flexible como en egresos, usa [Op.like]
-    // where.tipo = { [Op.like]: `%${tipo}%` };
-    // Si prefieres la búsqueda exacta, déjalo así
+  if (tipo) {
     where.tipo = tipo;
-  }
+  }
+
+  // Lógica para filtrar por rango de fechas si se proporcionan
+  if (fechaInicio && fechaFin) {
+    // Usamos el operador [Op.between] para buscar en un rango de fechas
+    where.created_at = { [Op.between]: [new Date(fechaInicio), new Date(fechaFin)] };
+  } else {
+    // Si no se proporcionan fechas, mantén el filtro por defecto de 31 días
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - 31);
+    where.created_at = { [Op.gte]: fechaLimite };
+  }
 
   const { count, rows } = await Ingreso.findAndCountAll({
     where,
