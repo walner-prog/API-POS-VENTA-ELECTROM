@@ -27,7 +27,7 @@ export async function listarIngresosPorCajaService(caja_id, query) {
   const { count, rows } = await Ingreso.findAndCountAll({
     where,
     include: [Caja, Usuario],
-    order: [['createdAt', 'DESC']],
+    order: [['created_at', 'DESC']],
     offset: (page - 1) * limit,
     limit: parseInt(limit)
   });
