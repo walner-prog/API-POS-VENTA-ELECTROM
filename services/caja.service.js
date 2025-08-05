@@ -420,6 +420,12 @@ export async function verCajaAbiertaService(usuario_id) {
         attributes: ['id', 'monto', 'estado']
       },
       {
+        model: Ingreso,
+        where: { estado: 'activo' },
+        required: false,
+        attributes: ['id', 'monto', 'estado']
+      },
+      {
         model: Usuario, // ✅ aquí se agrega
         attributes: ['id', 'nombre'] // puedes incluir más si querés mostrarlo
       }
@@ -430,7 +436,8 @@ export async function verCajaAbiertaService(usuario_id) {
 
   const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
   const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-  const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+  const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0; 
+  const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
   return {
     success: true,
@@ -440,6 +447,7 @@ export async function verCajaAbiertaService(usuario_id) {
       monto_inicial: caja.monto_inicial,
       total_ventas: totalVentas,
       total_egresos: totalEgresos,
+      total_ingresos: totalIngresos, 
       dinero_esperado: dineroEsperado,
       hora_apertura: caja.created_at,
       usuario: caja.Usuario // ✅ devolver el usuario también
