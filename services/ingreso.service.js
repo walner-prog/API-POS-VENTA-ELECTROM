@@ -19,6 +19,7 @@ export async function actualizarIngresoService(id, data) {
   return ingreso;
 }
 
+ 
 export async function listarIngresosPorCajaService(caja_id, query) {
   const { page = 1, limit = 10, tipo = '' } = query;
   const where = { caja_id };
@@ -26,7 +27,16 @@ export async function listarIngresosPorCajaService(caja_id, query) {
 
   const { count, rows } = await Ingreso.findAndCountAll({
     where,
-    include: [Caja, Usuario],
+    include: [
+      {
+        model: Caja,
+        attributes: ['id', 'nombre', 'monto_inicial', 'estado', 'hora_apertura', 'closed_at']
+      },
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre'] // solo nombre, puedes agregar más si necesitas
+      }
+    ],
     order: [['created_at', 'DESC']],
     offset: (page - 1) * limit,
     limit: parseInt(limit)
@@ -34,6 +44,7 @@ export async function listarIngresosPorCajaService(caja_id, query) {
 
   return { total: count, ingresos: rows };
 }
+
 
 export async function anularIngresoService(id, anulado_por) {
   const ingreso = await Ingreso.findByPk(id);
