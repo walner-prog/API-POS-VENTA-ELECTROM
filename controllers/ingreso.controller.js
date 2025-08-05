@@ -17,9 +17,15 @@ export async function actualizarIngreso(req, res) {
 }
 
 export async function listarIngresosPorCaja(req, res) {
-  const ingresos = await listarIngresosPorCajaService(req.params.caja_id, req.query);
-  res.json(ingresos);
+  try {
+    const ingresos = await listarIngresosPorCajaService(req.params.caja_id, req.query);
+    res.json(ingresos);
+  } catch (error) {
+    console.error("Error al listar ingresos:", error);
+    res.status(500).json({ error: error.message });
+  }
 }
+
 
 export async function anularIngreso(req, res) {
   const ingreso = await anularIngresoService(req.params.ingreso_id, req.usuario.id);
