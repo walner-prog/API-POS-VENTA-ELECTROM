@@ -1,6 +1,6 @@
 import sequelize from "../config/database.js";
 import { Op } from 'sequelize'
-import { Caja, Venta, Egreso, DetalleVenta, Producto,Usuario } from '../models/index.js'
+import { Caja, Venta, Egreso, DetalleVenta, Producto,Usuario,Ingreso } from '../models/index.js'
 import { getCurrentTimeInTimezone, NICARAGUA_OFFSET_MINUTES }  from "../utils/dateUtils.js";
 
  
@@ -89,7 +89,14 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' }, transaction: t });
         const totalVentas = ventas.reduce((acc, venta) => acc + parseFloat(venta.total), 0);
 
+        // Suma de egresos activos
         const totalEgresos = await Egreso.sum('monto', {
+            where: { caja_id: caja.id, estado: 'activo' },
+            transaction: t
+        }) || 0;
+
+        // SUMA DE INGRESOS ACTIVOS (NUEVA LÍNEA)
+        const totalIngresos = await Ingreso.sum('monto', {
             where: { caja_id: caja.id, estado: 'activo' },
             transaction: t
         }) || 0;
@@ -106,20 +113,20 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         const total_precio_venta = detalles.reduce((acc, d) => acc + parseFloat(d.total_linea), 0);
         const ganancia = total_precio_venta - total_precio_compra;
 
-        const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+        // CÁLCULO FINAL MODIFICADO (ahora incluye los ingresos)
+        const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
         // --- APLICACIÓN DE LA ZONA HORARIA ---
         const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
 
         caja.monto_final = dineroFinal;
         caja.estado = 'cerrada';
-        caja.closed_at = nowNicaragua; // Almacena la fecha/hora de cierre en Nicaragua (Sequelize la convertirá a UTC si es DATETIME)
+        caja.closed_at = nowNicaragua;
 
         await caja.save({ transaction: t });
 
         await t.commit();
 
-        // Formatea la fecha para el mensaje de respuesta usando la hora de Nicaragua
         const fechaFormateada = nowNicaragua.toLocaleString('es-NI', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit',
@@ -133,14 +140,15 @@ export async function cerrarCajaService(caja_id, usuario_id) {
                 monto_inicial: caja.monto_inicial,
                 total_ventas: totalVentas,
                 total_egresos: totalEgresos,
+                total_ingresos: totalIngresos, // AGREGAR TOTAL DE INGRESOS A LA RESPUESTA
                 total_precio_compra,
                 total_precio_venta,
                 ganancia,
                 cantidad_tickets: ventas.length,
                 dinero_final: dineroFinal,
-                hora_apertura: caja.hora_apertura, // Usar la hora de apertura original de la caja
+                hora_apertura: caja.hora_apertura,
                 created_at: caja.created_at,
-                hora_cierre: fechaFormateada, // Retorna la hora de cierre formateada de Nicaragua
+                hora_cierre: fechaFormateada,
                 usuario_id
             }
         };
