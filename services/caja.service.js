@@ -355,6 +355,12 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
                 required: false,
                 attributes: ['id', 'monto', 'estado'],
             },
+            {
+                model: Ingreso,
+                where: { estado: 'activo' },
+                required: false,
+                attributes: ['id', 'monto', 'estado'],
+            },
         ],
         limit: parseInt(limite),
         offset: parseInt(offset),
@@ -372,7 +378,8 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     const historial = cajas.map(caja => {
         const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
         const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+        const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
+        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
         return {
             id: caja.id,
@@ -386,6 +393,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
             observacion: caja.observacion,
             total_ventas: totalVentas,
             total_egresos: totalEgresos,
+            total_ingresos: totalIngresos, // AGREGAR TOTAL DE INGRESOS A LA RESPUESTA
             dinero_esperado: dineroEsperado,
             usuario: caja.Usuario,
         };
