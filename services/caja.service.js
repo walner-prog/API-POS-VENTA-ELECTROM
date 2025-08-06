@@ -281,7 +281,7 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 
 
 
-
+ 
 export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
     const offset = (pagina - 1) * limite;
 
@@ -302,7 +302,12 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         }
     }
 
-    
+    if (hasta) {
+        const fechaHasta = new Date(hasta);
+        if (fechaHasta > hoyNicaragua) {
+            throw { status: 400, message: 'La fecha de fin no puede ser una fecha futura.' };
+        }
+    }
 
     if (desde && hasta) {
         const fechaDesde = new Date(desde);
@@ -312,29 +317,25 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         }
     }
 
-    // --- CONSTRUCCIÓN DE FILTROS OPTIMIZADA (MI VERSIÓN) ---
+    // --- CONSTRUCCIÓN DE FILTROS OPTIMIZADA ---
     const where = {
         usuario_id,
-        // Aplica el filtro de estado solo si se proporciona, de lo contrario, por defecto es 'cerrada'
         estado: estadoCaja || 'cerrada',
     };
 
     const fechaFiltro = {};
     if (desde) {
         const fechaDesde = new Date(desde);
-        // Conviertes la fecha de Nicaragua a UTC para el filtro de la DB
         fechaFiltro[Op.gte] = new Date(fechaDesde.getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
     }
     if (hasta) {
         const fechaHasta = new Date(hasta);
-        // Conviertes la fecha de Nicaragua a UTC para el filtro de la DB
         fechaFiltro[Op.lte] = new Date(fechaHasta.getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
     }
 
     if (Object.keys(fechaFiltro).length > 0) {
         where.closed_at = fechaFiltro;
     } else {
-        // Si no hay filtros de fecha, usa el rango de 31 días por defecto
         where.closed_at = {
             [Op.gte]: hace31DiasNicaragua,
         };
@@ -372,6 +373,9 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         ],
         limit: parseInt(limite),
         offset: parseInt(offset),
+        // --- LA CORRECCIÓN CLAVE ---
+        distinct: true,
+        col: 'Caja.id'
     });
 
     const historial = cajas.map(caja => {
