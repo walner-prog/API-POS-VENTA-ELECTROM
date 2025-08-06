@@ -302,12 +302,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         }
     }
 
-    if (hasta) {
-        const fechaHasta = new Date(hasta);
-        if (fechaHasta > hoyNicaragua) {
-            throw { status: 400, message: 'La fecha de fin no puede ser una fecha futura.' };
-        }
-    }
+    
 
     if (desde && hasta) {
         const fechaDesde = new Date(desde);
