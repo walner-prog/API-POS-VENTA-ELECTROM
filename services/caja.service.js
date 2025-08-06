@@ -289,12 +289,11 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     const hoyNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
     const hace31DiasNicaragua = new Date(hoyNicaragua);
     hace31DiasNicaragua.setDate(hace31DiasNicaragua.getDate() - 31);
-    hace31DiasNicaragua.setHours(0, 0, 0, 0); // Opcional, para asegurar el inicio del día
+    hace31DiasNicaragua.setHours(0, 0, 0, 0);
 
-    // --- VALIDACIÓN DE FECHAS (ahora usando fechas corregidas) ---
+    // --- VALIDACIÓN DE FECHAS (TUS VALIDACIONES ORIGINALES) ---
     if (desde) {
         const fechaDesde = new Date(desde);
-        // Validamos con las fechas de Nicaragua
         if (fechaDesde < hace31DiasNicaragua) {
             throw { status: 400, message: 'La fecha de inicio no puede ser anterior a los últimos 31 días.' };
         }
@@ -305,7 +304,6 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
 
     if (hasta) {
         const fechaHasta = new Date(hasta);
-        // Validamos con las fechas de Nicaragua
         if (fechaHasta > hoyNicaragua) {
             throw { status: 400, message: 'La fecha de fin no puede ser una fecha futura.' };
         }
@@ -319,45 +317,40 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         }
     }
 
-    // --- CONSTRUCCIÓN DE FILTROS ---
+    // --- CONSTRUCCIÓN DE FILTROS OPTIMIZADA (MI VERSIÓN) ---
     const where = {
         usuario_id,
-        estado: 'cerrada',
+        // Aplica el filtro de estado solo si se proporciona, de lo contrario, por defecto es 'cerrada'
+        estado: estadoCaja || 'cerrada',
     };
 
-    if (estadoCaja === 'abierta' || estadoCaja === 'cerrada') {
-        where.estado = estadoCaja;
+    const fechaFiltro = {};
+    if (desde) {
+        const fechaDesde = new Date(desde);
+        // Conviertes la fecha de Nicaragua a UTC para el filtro de la DB
+        fechaFiltro[Op.gte] = new Date(fechaDesde.getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
+    }
+    if (hasta) {
+        const fechaHasta = new Date(hasta);
+        // Conviertes la fecha de Nicaragua a UTC para el filtro de la DB
+        fechaFiltro[Op.lte] = new Date(fechaHasta.getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
     }
 
-    if (desde && hasta) {
-        // Asumimos que los strings 'desde' y 'hasta' son la fecha en Nicaragua
-        const inicioUTC = new Date(new Date(desde).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
-        const finUTC = new Date(new Date(hasta).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
-
-        where.closed_at = {
-            [Op.between]: [inicioUTC, finUTC],
-        };
-    } else if (desde) {
-        const inicioUTC = new Date(new Date(desde).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
-        where.closed_at = {
-            [Op.gte]: inicioUTC,
-        };
-    } else if (hasta) {
-        const finUTC = new Date(new Date(hasta).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
-        where.closed_at = {
-            [Op.lte]: finUTC,
-        };
+    if (Object.keys(fechaFiltro).length > 0) {
+        where.closed_at = fechaFiltro;
     } else {
-        // Si no hay fechas, usamos el rango de los últimos 31 días en Nicaragua
+        // Si no hay filtros de fecha, usa el rango de 31 días por defecto
         where.closed_at = {
             [Op.gte]: hace31DiasNicaragua,
         };
     }
 
+    console.log("DEBUG - Filtros en historialCierresService:", where);
+
     const { count, rows: cajas } = await Caja.findAndCountAll({
         where,
         order: [['closed_at', 'DESC']],
-        attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'hora_apertura', 'observacion', 'estado'],
+        attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'observacion', 'estado', 'hora_apertura'],
         include: [
             {
                 model: Usuario,
@@ -367,36 +360,27 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
                 model: Venta,
                 where: { estado: 'completada' },
                 required: false,
-                attributes: ['id', 'total', 'estado'],
+                attributes: ['id', 'total'],
             },
             {
                 model: Egreso,
                 where: { estado: 'activo' },
                 required: false,
-                attributes: ['id', 'monto', 'estado'],
+                attributes: ['id', 'monto'],
             },
             {
                 model: Ingreso,
                 where: { estado: 'activo' },
                 required: false,
-                attributes: ['id', 'monto', 'estado'],
+                attributes: ['id', 'monto'],
             },
         ],
         limit: parseInt(limite),
         offset: parseInt(offset),
     });
 
-    // ... (el resto de tu código de mapeo es correcto y se puede mantener) ...
-
-    const formatearHora = (hora) => {
-        return new Date(`1970-01-01T${hora}Z`).toLocaleTimeString('es-NI', {
-            timeZone: 'America/Managua',
-            hour12: true,
-        });
-    };
-
     const historial = cajas.map(caja => {
-        const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+        const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
         const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
         const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
         const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
@@ -405,15 +389,14 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
             id: caja.id,
             monto_inicial: caja.monto_inicial,
             monto_final: caja.monto_final,
-            hora_apertura: formatearHora(caja.hora_apertura),
+            hora_apertura: caja.hora_apertura,
             created_at: caja.created_at,
             closed_at: caja.closed_at,
             estado: caja.estado,
-            hora_cierre: caja.closed_at,
             observacion: caja.observacion,
             total_ventas: totalVentas,
             total_egresos: totalEgresos,
-            total_ingresos: totalIngresos, // AGREGAR TOTAL DE INGRESOS A LA RESPUESTA
+            total_ingresos: totalIngresos,
             dinero_esperado: dineroEsperado,
             usuario: caja.Usuario,
         };
