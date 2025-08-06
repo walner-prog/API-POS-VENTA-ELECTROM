@@ -294,18 +294,15 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     // --- VALIDACIÓN DE FECHAS (TUS VALIDACIONES ORIGINALES) ---
     if (desde) {
         const fechaDesde = new Date(desde);
-        
+        if (fechaDesde < hace31DiasNicaragua) {
+            throw { status: 400, message: 'La fecha de inicio no puede ser anterior a los últimos 31 días.' };
+        }
         if (fechaDesde > hoyNicaragua) {
             throw { status: 400, message: 'La fecha de inicio no puede ser una fecha futura.' };
         }
     }
 
-    if (hasta) {
-        const fechaHasta = new Date(hasta);
-        if (fechaHasta > hoyNicaragua) {
-            throw { status: 400, message: 'La fecha de fin no puede ser una fecha futura.' };
-        }
-    }
+    
 
     if (desde && hasta) {
         const fechaDesde = new Date(desde);
