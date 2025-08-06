@@ -89,13 +89,11 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' }, transaction: t });
         const totalVentas = ventas.reduce((acc, venta) => acc + parseFloat(venta.total), 0);
 
-        // Suma de egresos activos
         const totalEgresos = await Egreso.sum('monto', {
             where: { caja_id: caja.id, estado: 'activo' },
             transaction: t
         }) || 0;
 
-        // SUMA DE INGRESOS ACTIVOS (NUEVA LÍNEA)
         const totalIngresos = await Ingreso.sum('monto', {
             where: { caja_id: caja.id, estado: 'activo' },
             transaction: t
@@ -113,23 +111,23 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         const total_precio_venta = detalles.reduce((acc, d) => acc + parseFloat(d.total_linea), 0);
         const ganancia = total_precio_venta - total_precio_compra;
 
-        // CÁLCULO FINAL MODIFICADO (ahora incluye los ingresos)
         const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-        // --- APLICACIÓN DE LA ZONA HORARIA ---
-        const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
+        // **CORRECCIÓN CLAVE**
+        // 1. Usar new Date() para guardar la hora exacta del servidor.
+        const fechaDeCierre = new Date();
 
         caja.monto_final = dineroFinal;
         caja.estado = 'cerrada';
-        caja.closed_at = nowNicaragua;
+        caja.closed_at = fechaDeCierre; // Guardamos la hora del sistema.
 
         await caja.save({ transaction: t });
-
         await t.commit();
 
-        const fechaFormateada = nowNicaragua.toLocaleString('es-NI', {
+        // 2. Formatear la fecha para la respuesta usando el objeto de fecha guardado.
+        const fechaFormateada = fechaDeCierre.toLocaleString('es-NI', {
             day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
             hour12: true
         });
 
@@ -140,7 +138,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
                 monto_inicial: caja.monto_inicial,
                 total_ventas: totalVentas,
                 total_egresos: totalEgresos,
-                total_ingresos: totalIngresos, // AGREGAR TOTAL DE INGRESOS A LA RESPUESTA
+                total_ingresos: totalIngresos,
                 total_precio_compra,
                 total_precio_venta,
                 ganancia,
@@ -157,7 +155,6 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         throw error;
     }
 }
-
 
 
 
