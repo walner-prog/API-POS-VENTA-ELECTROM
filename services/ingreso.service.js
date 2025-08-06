@@ -12,11 +12,17 @@ export async function crearIngresoService(data, usuario) {
   return ingreso;
 }
 
-export async function actualizarIngresoService(id, data) {
-  const ingreso = await Ingreso.findByPk(id);
-  if (!ingreso) throw new Error('Ingreso no encontrado');
-  await ingreso.update(data);
-  return ingreso;
+export async function actualizarIngresoService(id, data, usuario_id) {
+    // Paso 1: Validar que la caja esté abierta
+    await validarCajaAbierta(usuario_id);
+
+    // Paso 2: Actualizar el ingreso si la validación pasa
+    const ingreso = await Ingreso.findByPk(id);
+    if (!ingreso) throw new Error('Ingreso no encontrado');
+    if (ingreso.estado === 'anulado') throw new Error('No se puede editar un ingreso anulado');
+
+    await ingreso.update(data);
+    return ingreso;
 }
 
  
@@ -46,15 +52,19 @@ export async function listarIngresosPorCajaService(caja_id, query) {
 }
 
 
-export async function anularIngresoService(id, anulado_por) {
-  const ingreso = await Ingreso.findByPk(id);
-  if (!ingreso) throw new Error('Ingreso no encontrado');
-  if (ingreso.estado === 'anulado') throw new Error('Ya está anulado');
+export async function anularIngresoService(id, anulado_por, usuario_id) {
+    // Paso 1: Validar que la caja esté abierta
+    await validarCajaAbierta(usuario_id);
 
-  ingreso.estado = 'anulado';
-  ingreso.anulado_por = anulado_por;
-  ingreso.anulado_en = new Date();
-  await ingreso.save();
+    // Paso 2: Anular el ingreso si la validación pasa
+    const ingreso = await Ingreso.findByPk(id);
+    if (!ingreso) throw new Error('Ingreso no encontrado');
+    if (ingreso.estado === 'anulado') throw new Error('El ingreso ya está anulado');
 
-  return ingreso;
+    ingreso.estado = 'anulado';
+    ingreso.anulado_por = anulado_por;
+    ingreso.anulado_en = new Date();
+    await ingreso.save();
+
+    return ingreso;
 }
