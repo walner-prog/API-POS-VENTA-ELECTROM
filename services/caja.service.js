@@ -297,12 +297,15 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         if (fechaDesde < hace31DiasNicaragua) {
             throw { status: 400, message: 'La fecha de inicio no puede ser anterior a los últimos 31 días.' };
         }
-        if (fechaDesde > hoyNicaragua) {
-            throw { status: 400, message: 'La fecha de inicio no puede ser una fecha futura.' };
-        }
+         
     }
 
-    
+    if (hasta) {
+        const fechaHasta = new Date(hasta);
+        if (fechaHasta > hoyNicaragua) {
+            throw { status: 400, message: 'La fecha de fin no puede ser una fecha futura.' };
+        }
+    }
 
     if (desde && hasta) {
         const fechaDesde = new Date(desde);
@@ -368,9 +371,8 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         ],
         limit: parseInt(limite),
         offset: parseInt(offset),
-        // --- LA CORRECCIÓN CLAVE ---
-        distinct: true,
-        col: 'Caja.id'
+        // --- LA CORRECCIÓN FINAL: Solo 'distinct' es necesario ---
+        distinct: true
     });
 
     const historial = cajas.map(caja => {
@@ -405,7 +407,6 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
     };
 }
-
 
 
 export async function verCajaAbiertaService(usuario_id) {
