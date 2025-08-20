@@ -17,7 +17,8 @@ import {
   productoRoutes,
   reportesRoutes,
   clavesCancelacionRoutes,
-  ingresoRoutes
+  ingresoRoutes,
+  compraRoutes
 
 } from './routes/index.js'
 import './models/index.js'
@@ -37,6 +38,7 @@ app.use('/api/productos', productoRoutes)
 app.use('/api/reportes', reportesRoutes)
 app.use('/api/claves-cancelacion', clavesCancelacionRoutes)
 app.use('/api/ingresos', ingresoRoutes)
+app.use('/api/compras', compraRoutes)
 
 app.get('/', (req, res) => res.send('API POS funcionando 🚀'))
 
