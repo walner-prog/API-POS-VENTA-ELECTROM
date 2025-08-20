@@ -14,6 +14,8 @@ import HistorialProducto from './HistorialProductoPrecio.js'
 import Permiso from './Permiso.js'
 import ClaveCancelacion from './ClaveCancelacion.js'
 import  Ingreso from './Ingreso.js'
+import  StockMovimiento from './StockMovimiento.js'
+
 
  
 
@@ -79,9 +81,24 @@ Ingreso.belongsTo(Caja, { foreignKey: 'caja_id' });
 Usuario.hasMany(Ingreso, { foreignKey: 'usuario_id' });
 Ingreso.belongsTo(Usuario, { foreignKey: 'usuario_id' });
 
+//
+
+// Relaciones
+Producto.hasMany(StockMovimiento, { foreignKey: 'producto_id' });
+StockMovimiento.belongsTo(Producto, { foreignKey: 'producto_id' });
+
+Usuario.hasMany(StockMovimiento, { foreignKey: 'usuario_id' });
+StockMovimiento.belongsTo(Usuario, { foreignKey: 'usuario_id' });
+
+Egreso.hasMany(StockMovimiento, { foreignKey: 'referencia_id', constraints: false, scope: { referencia_tipo: 'egreso' } });
+StockMovimiento.belongsTo(Egreso, { foreignKey: 'referencia_id', constraints: false });
+
+Venta.hasMany(StockMovimiento, { foreignKey: 'referencia_id', constraints: false, scope: { referencia_tipo: 'venta' } });
+StockMovimiento.belongsTo(Venta, { foreignKey: 'referencia_id', constraints: false });
+
 export {
   Usuario, Rol, Categoria, Producto, Caja,
   Venta, DetalleVenta, Ticket, Egreso, InventarioLote,
   MovimientoCaja, DetalleVentaLote, HistorialProducto,
-  Permiso, ClaveCancelacion, Ingreso
+  Permiso, ClaveCancelacion, Ingreso,StockMovimiento
 }

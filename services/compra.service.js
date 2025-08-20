@@ -5,108 +5,51 @@ import {
   Producto,
   Venta,
   Categoria,
-  HistorialProducto
+  StockMovimiento
+   
 } from "../models/index.js";
 import sequelize from "../config/database.js";
 import { agregarStockProducto } from "./producto.service.js";
 
+ 
+
 export async function registrarCompraService(data, usuario) {
   const t = await sequelize.transaction();
   try {
-    // 1️⃣ Validaciones iniciales
-    if (!usuario || !usuario.id) {
-      throw { status: 401, message: "Usuario no autenticado" };
-    }
+    if (!usuario || !usuario.id) throw { status: 401, message: "Usuario no autenticado" };
 
-    const {
-      referencia,
-      fecha_compra,
-      factura_imagen,
-      productos,
-      proveedor,
-      caja_id,
-    } = data;
+    const { referencia, fecha_compra, factura_imagen, productos, proveedor, caja_id } = data;
 
-    if (!productos || !Array.isArray(productos) || productos.length === 0) {
-      throw {
-        status: 400,
-        message: "Debe incluir al menos un producto para la compra",
-      };
-    }
+    if (!productos || !Array.isArray(productos) || productos.length === 0)
+      throw { status: 400, message: "Debe incluir al menos un producto para la compra" };
 
-    if (!proveedor) {
-      throw { status: 400, message: "Debe especificar un proveedor" };
-    }
+    if (!proveedor) throw { status: 400, message: "Debe especificar un proveedor" };
 
-    // 2️⃣ Validar caja y fondos disponibles
-    const caja = await Caja.findOne({
-      where: { id: caja_id, estado: "abierta", abierto_por: usuario.id },
-      transaction: t,
-    });
-    if (!caja) {
-      throw {
-        status: 400,
-        message: "Caja no encontrada o cerrada para este usuario",
-      };
-    }
+    // Validar caja y fondos
+    const caja = await Caja.findOne({ where: { id: caja_id, estado: "abierta", abierto_por: usuario.id }, transaction: t });
+    if (!caja) throw { status: 400, message: "Caja no encontrada o cerrada para este usuario" };
 
-    const totalVentas =
-      (await Venta.sum("total", {
-        where: { caja_id: caja.id, estado: "completada" },
-        transaction: t,
-      })) || 0;
-    const totalEgresos =
-      (await Egreso.sum("monto", {
-        where: { caja_id: caja.id, estado: "activo" },
-        transaction: t,
-      })) || 0;
+    const totalVentas = (await Venta.sum("total", { where: { caja_id: caja.id, estado: "completada" }, transaction: t })) || 0;
+    const totalEgresos = (await Egreso.sum("monto", { where: { caja_id: caja.id, estado: "activo" }, transaction: t })) || 0;
 
-    // 3️⃣ Validar productos y calcular monto total
+    // Calcular monto total y validar productos
     let montoTotal = 0;
-
     for (const p of productos) {
-      // Validaciones básicas
-      if (!p.nombre)
-        throw { status: 400, message: "Cada producto debe tener un nombre" };
-      if (!p.categoria_id)
-        throw {
-          status: 400,
-          message: `Producto ${p.nombre} debe tener categoría`,
-        };
+      if (!p.nombre) throw { status: 400, message: "Cada producto debe tener un nombre" };
+      if (!p.categoria_id) throw { status: 400, message: `Producto ${p.nombre} debe tener categoría` };
       if (typeof p.precio_compra !== "number" || p.precio_compra <= 0)
-        throw {
-          status: 400,
-          message: `Producto ${p.nombre} precio_compra inválido`,
-        };
-      if (
-        typeof p.precio_venta !== "number" ||
-        p.precio_venta <= p.precio_compra
-      )
-        throw {
-          status: 400,
-          message: `Producto ${p.nombre} precio_venta debe ser mayor a precio_compra`,
-        };
+        throw { status: 400, message: `Producto ${p.nombre} precio_compra inválido` };
+      if (typeof p.precio_venta !== "number" || p.precio_venta <= p.precio_compra)
+        throw { status: 400, message: `Producto ${p.nombre} precio_venta debe ser mayor a precio_compra` };
       if (!p.cantidad || p.cantidad <= 0)
-        throw {
-          status: 400,
-          message: `Producto ${p.nombre} cantidad debe ser mayor a cero`,
-        };
+        throw { status: 400, message: `Producto ${p.nombre} cantidad debe ser mayor a cero` };
 
-      // Validar categoría
-      const categoria = await Categoria.findByPk(p.categoria_id, {
-        transaction: t,
-      });
-      if (!categoria)
-        throw {
-          status: 400,
-          message: `Categoría con id ${p.categoria_id} no existe`,
-        };
+      const categoria = await Categoria.findByPk(p.categoria_id, { transaction: t });
+      if (!categoria) throw { status: 400, message: `Categoría con id ${p.categoria_id} no existe` };
 
-      // Buscar producto
+      // Buscar o crear producto
       let producto = await Producto.findByPk(p.producto_id, { transaction: t });
-
       if (!producto) {
-        // 3.1️⃣ Crear producto nuevo
         const codigo = p.codigo_barra || `CB-${Date.now()}`;
         producto = await Producto.create(
           {
@@ -123,101 +66,19 @@ export async function registrarCompraService(data, usuario) {
           { transaction: t }
         );
         p.producto_id = producto.id;
-
-        // 📌 Guardar historial inicial
-        await HistorialProducto.bulkCreate(
-          [
-            {
-              producto_id: producto.id,
-              campo: "precio_compra",
-              valor_anterior: 0,
-              valor_nuevo: p.precio_compra,
-              usuario_id: usuario.id,
-            },
-            {
-              producto_id: producto.id,
-              campo: "precio_venta",
-              valor_anterior: 0,
-              valor_nuevo: p.precio_venta,
-              usuario_id: usuario.id,
-            },
-            {
-              producto_id: producto.id,
-              campo: "utilidad",
-              valor_anterior: 0,
-              valor_nuevo: p.precio_venta - p.precio_compra,
-              usuario_id: usuario.id,
-            },
-          ],
-          { transaction: t }
-        );
-      } else {
-        // 3.2️⃣ Producto existe → registrar cambios
-        const cambios = [];
-
-        if (producto.precio_compra !== p.precio_compra) {
-          cambios.push({
-            producto_id: producto.id,
-            campo: "precio_compra",
-            valor_anterior: producto.precio_compra,
-            valor_nuevo: p.precio_compra,
-            usuario_id: usuario.id,
-          });
-        }
-
-        if (producto.precio_venta !== p.precio_venta) {
-          cambios.push({
-            producto_id: producto.id,
-            campo: "precio_venta",
-            valor_anterior: producto.precio_venta,
-            valor_nuevo: p.precio_venta,
-            usuario_id: usuario.id,
-          });
-        }
-
-        const nuevaUtilidad = p.precio_venta - p.precio_compra;
-        if (producto.utilidad !== nuevaUtilidad) {
-          cambios.push({
-            producto_id: producto.id,
-            campo: "utilidad",
-            valor_anterior: producto.utilidad,
-            valor_nuevo: nuevaUtilidad,
-            usuario_id: usuario.id,
-          });
-        }
-
-        if (cambios.length > 0) {
-          await HistorialProducto.bulkCreate(cambios, { transaction: t });
-        }
-
-        // Actualizar producto
-        await producto.update(
-          {
-            precio_compra: p.precio_compra,
-            precio_venta: p.precio_venta,
-            utilidad: nuevaUtilidad,
-          },
-          { transaction: t }
-        );
       }
 
       montoTotal += p.cantidad * p.precio_compra;
     }
 
-    // 4️⃣ Validar fondos de caja
-    const montoDisponible =
-      parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+    // Validar fondos de caja
+    const montoDisponible = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
     if (montoTotal > montoDisponible) {
       const faltante = (montoTotal - montoDisponible).toFixed(2);
-      throw {
-        status: 400,
-        message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(
-          2
-        )}, faltan $${faltante} para cubrir esta compra.`,
-      };
+      throw { status: 400, message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(2)}, faltan $${faltante}` };
     }
 
-    // 5️⃣ Crear egreso asociado a la caja
+    // Crear egreso
     const egreso = await Egreso.create(
       {
         tipo: "compra_productos",
@@ -232,7 +93,7 @@ export async function registrarCompraService(data, usuario) {
       { transaction: t }
     );
 
-    // 6️⃣ Crear lotes y actualizar stock
+    // Registrar lotes y movimientos de stock
     for (const p of productos) {
       await InventarioLote.create(
         {
@@ -246,28 +107,38 @@ export async function registrarCompraService(data, usuario) {
         { transaction: t }
       );
 
+      // Registrar movimiento de stock
+      const producto = await Producto.findByPk(p.producto_id, { transaction: t });
+      const stockAnterior = producto.stock;
+      const stockNuevo = stockAnterior + p.cantidad;
+
+      await StockMovimiento.create(
+        {
+          tipo_movimiento: "compra",
+          cantidad: p.cantidad,
+          stock_anterior: stockAnterior,
+          stock_nuevo: stockNuevo,
+          referencia_tipo: "egreso",
+          referencia_id: egreso.id,
+          observaciones: `Compra a proveedor ${proveedor}`,
+        },
+        { transaction: t }
+      );
+
+      // Actualizar stock
       await agregarStockProducto(p.producto_id, p.cantidad, t);
     }
 
-    // 7️⃣ Commit transacción
     await t.commit();
 
-    return {
-      success: true,
-      egreso_id: egreso.id,
-      monto_total: montoTotal,
-      productos_registrados: productos.length,
-      caja_id: caja.id,
-    };
+    return { success: true, egreso_id: egreso.id, monto_total: montoTotal, productos_registrados: productos.length, caja_id: caja.id };
   } catch (error) {
     if (t) await t.rollback();
     console.error("Error registrarCompraService:", error);
-    throw {
-      status: error.status || 500,
-      message: error.message || "Error al registrar la compra",
-    };
+    throw { status: error.status || 500, message: error.message || "Error al registrar la compra" };
   }
 }
+
 
 
 // LISTAR COMPRA DE PRODUCTOS
