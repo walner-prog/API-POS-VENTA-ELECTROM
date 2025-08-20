@@ -28,20 +28,12 @@ export async function registrarCompraService(data, usuario) {
     const caja = await Caja.findOne({ where: { id: caja_id, estado: "abierta", abierto_por: usuario.id }, transaction: t });
     if (!caja) throw { status: 400, message: "Caja no encontrada o cerrada para este usuario" };
 
-    // Validar monto total de la compra a partir del precio de cada lote
-    let montoTotal = 0;
-    productos.forEach(p => {
-      if (!p.precio_compra || p.precio_compra <= 0)
-        throw { status: 400, message: `Debe especificar precio_compra para el producto ${p.nombre}` };
-      montoTotal += p.precio_compra * p.cantidad;
-    });
-
-    // Crear egreso con el monto total real
+    // Crear egreso sin depender de precios
     const egreso = await Egreso.create(
       {
         tipo: "compra_productos",
         descripcion: `Compra a proveedor ${referencia}`,
-        monto: montoTotal,
+        monto: data.monto_total || 0, // opcional, puede ser 0 si no se registra el precio
         referencia: referencia || null,
         usuario_id: usuario.id,
         caja_id: caja.id,
@@ -55,7 +47,6 @@ export async function registrarCompraService(data, usuario) {
       if (!p.nombre || !p.categoria_id || !p.cantidad || p.cantidad <= 0)
         throw { status: 400, message: `Producto inválido` };
 
-      // Buscar o crear producto sin tocar precios
       let producto = await Producto.findByPk(p.producto_id, { transaction: t });
       if (!producto) {
         const codigo = p.codigo_barra || `CB-${Date.now()}`;
@@ -73,13 +64,13 @@ export async function registrarCompraService(data, usuario) {
         p.producto_id = producto.id;
       }
 
-      // Registrar lote con precio_compra del proveedor
+      // Registrar lote
       await InventarioLote.create(
         {
           producto_id: p.producto_id,
           cantidad: p.cantidad,
           fecha_caducidad: p.fecha_caducidad || null,
-          precio_compra: p.precio_compra, // ⚡ aquí se registra el precio real del lote
+          precio_compra: p.precio_compra || 0,
           proveedor,
           egreso_id: egreso.id,
         },
