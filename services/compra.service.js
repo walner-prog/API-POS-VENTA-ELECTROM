@@ -1,29 +1,49 @@
 import { Egreso, InventarioLote } from '../models/index.js';
 import sequelize from '../config/database.js';
 import { agregarStockProducto } from './producto.service.js';
+ 
 
 export async function registrarCompraService(data, usuario) {
   const t = await sequelize.transaction();
   try {
-    const { referencia, fecha_compra, factura_imagen, productos } = data;
+    // Validaciones iniciales
+    if (!usuario || !usuario.id) {
+      throw { status: 401, message: "Usuario no autenticado" };
+    }
 
-    const montoTotal = productos.reduce(
-      (sum, p) => sum + (p.cantidad * p.precio_unitario),
-      0
-    );
+    const { referencia, fecha_compra, factura_imagen, productos, proveedor } = data;
 
-    // 1. Crear egreso
+    if (!productos || !Array.isArray(productos) || productos.length === 0) {
+      throw { status: 400, message: "Debe incluir al menos un producto para la compra" };
+    }
+
+    if (!proveedor) {
+      throw { status: 400, message: "Debe especificar un proveedor" };
+    }
+
+    // Calcular monto total
+    const montoTotal = productos.reduce((sum, p) => {
+      if (!p.producto_id || !p.cantidad || !p.precio_unitario) {
+        throw { status: 400, message: "Cada producto debe tener id, cantidad y precio_unitario" };
+      }
+      if (p.cantidad <= 0 || p.precio_unitario <= 0) {
+        throw { status: 400, message: "Cantidad y precio_unitario deben ser mayores a cero" };
+      }
+      return sum + p.cantidad * p.precio_unitario;
+    }, 0);
+
+    // 1️⃣ Crear egreso
     const egreso = await Egreso.create({
       tipo: 'compra_producto',
       descripcion: `Compra a proveedor ${referencia}`,
       monto: montoTotal,
-      referencia,
+      referencia: referencia || null,
       usuario_id: usuario.id,
       fecha: fecha_compra || new Date(),
       factura_imagen: factura_imagen || null
     }, { transaction: t });
 
-    // 2. Crear lotes y actualizar stock
+    // 2️⃣ Crear lotes y actualizar stock
     for (const p of productos) {
       await InventarioLote.create({
         producto_id: p.producto_id,
@@ -37,14 +57,29 @@ export async function registrarCompraService(data, usuario) {
       await agregarStockProducto(p.producto_id, p.cantidad, t);
     }
 
+    // 3️⃣ Confirmar transacción
     await t.commit();
-    return { success: true, egreso_id: egreso.id, monto_total: montoTotal };
+
+    return {
+      success: true,
+      egreso_id: egreso.id,
+      monto_total: montoTotal,
+      productos_registrados: productos.length
+    };
 
   } catch (error) {
-    await t.rollback();
-    throw error;
+    // Rollback seguro
+    if (t) await t.rollback();
+
+    // Manejo de errores claros
+    console.error("Error registrarCompraService:", error);
+    throw {
+      status: error.status || 500,
+      message: error.message || "Error al registrar la compra"
+    };
   }
 }
+
 
 // LISTAR COMPRA DE PRODUCTOS 
 
