@@ -9,8 +9,7 @@ import {
 } from "../models/index.js";
 import sequelize from "../config/database.js";
 import { agregarStockProducto } from "./producto.service.js";
-import { Op } from "sequelize";
- 
+
 export async function registrarCompraService(data, usuario) {
   const t = await sequelize.transaction();
   try {
