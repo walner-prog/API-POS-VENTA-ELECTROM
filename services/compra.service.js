@@ -5,7 +5,7 @@ import { agregarStockProducto } from './producto.service.js';
 export async function registrarCompraService(data, usuario) {
   const t = await sequelize.transaction();
   try {
-    const { proveedor, fecha_compra, factura_imagen, productos } = data;
+    const { referencia, fecha_compra, factura_imagen, productos } = data;
 
     const montoTotal = productos.reduce(
       (sum, p) => sum + (p.cantidad * p.precio_unitario),
@@ -15,9 +15,9 @@ export async function registrarCompraService(data, usuario) {
     // 1. Crear egreso
     const egreso = await Egreso.create({
       tipo: 'compra_producto',
-      descripcion: `Compra a proveedor ${proveedor}`,
+      descripcion: `Compra a proveedor ${referencia}`,
       monto: montoTotal,
-      proveedor,
+      referencia,
       usuario_id: usuario.id,
       fecha: fecha_compra || new Date(),
       factura_imagen: factura_imagen || null
@@ -44,4 +44,49 @@ export async function registrarCompraService(data, usuario) {
     await t.rollback();
     throw error;
   }
+}
+
+// LISTAR COMPRA DE PRODUCTOS 
+
+export async function listarComprasService(filtros) {
+  const { fecha_inicio, fecha_fin, proveedor } = filtros;
+
+  const where = {};
+  if (fecha_inicio && fecha_fin) {
+    where.fecha = {
+      [Op.between]: [new Date(fecha_inicio), new Date(fecha_fin)]
+    };
+  }
+  if (proveedor) {
+    where.proveedor = proveedor;
+  }
+
+  const compras = await Egreso.findAll({
+    where: {
+      tipo: 'compra_producto',
+      ...where
+    },
+    include: [
+      {
+        model: InventarioLote
+      }
+    ]
+  });
+
+  return compras;
+}
+
+export async function obtenerCompraPorIdService(id) {
+  const compra = await Egreso.findOne({
+    where: {
+      id,
+      tipo: 'compra_producto'
+    },
+    include: [
+      {
+        model: InventarioLote
+      }
+    ]
+  });
+  return compra;
 }
