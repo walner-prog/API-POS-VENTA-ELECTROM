@@ -1,8 +1,6 @@
-import { Egreso, InventarioLote,Caja } from '../models/index.js';
+import { Egreso, InventarioLote,Caja,  Producto, Venta } from '../models/index.js';
 import sequelize from '../config/database.js';
 import { agregarStockProducto } from './producto.service.js';
- 
-
  
 
 export async function registrarCompraService(data, usuario) {
@@ -23,13 +21,16 @@ export async function registrarCompraService(data, usuario) {
       throw { status: 400, message: "Debe especificar un proveedor" };
     }
 
-    // Validar caja
-    const caja = await Caja.findOne({ where: { id: caja_id, estado: 'abierta' } });
+    // 2️⃣ Validar caja y fondos disponibles
+    const caja = await Caja.findOne({ where: { id: caja_id, estado: 'abierta', abierto_por: usuario.id }, transaction: t });
     if (!caja) {
-      throw { status: 400, message: "Caja no encontrada o cerrada" };
+      throw { status: 400, message: "Caja no encontrada o cerrada para este usuario" };
     }
 
-    // 2️⃣ Calcular monto total
+    const totalVentas = await Venta.sum('total', { where: { caja_id: caja.id, estado: 'completada' }, transaction: t }) || 0;
+    const totalEgresos = await Egreso.sum('monto', { where: { caja_id: caja.id, estado: 'activo' }, transaction: t }) || 0;
+
+    // Calcular monto total de la compra
     const montoTotal = productos.reduce((sum, p) => {
       if (!p.producto_id || !p.cantidad || !p.precio_unitario) {
         throw { status: 400, message: "Cada producto debe tener id, cantidad y precio_unitario" };
@@ -40,9 +41,18 @@ export async function registrarCompraService(data, usuario) {
       return sum + p.cantidad * p.precio_unitario;
     }, 0);
 
+    const montoDisponible = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+    if (montoTotal > montoDisponible) {
+      const faltante = (montoTotal - montoDisponible).toFixed(2);
+      throw {
+        status: 400,
+        message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(2)}, faltan $${faltante} para cubrir esta compra.`
+      };
+    }
+
     // 3️⃣ Crear egreso asociado a la caja
     const egreso = await Egreso.create({
-      tipo: 'compra_productos', // ⚠️ coincide con ENUM
+      tipo: 'compra_productos',
       descripcion: `Compra a proveedor ${referencia}`,
       monto: montoTotal,
       referencia: referencia || null,
@@ -52,8 +62,13 @@ export async function registrarCompraService(data, usuario) {
       factura_imagen: factura_imagen || null
     }, { transaction: t });
 
-    // 4️⃣ Crear lotes y actualizar stock
+    // 4️⃣ Validar productos y crear lotes
     for (const p of productos) {
+      const productoExistente = await Producto.findByPk(p.producto_id, { transaction: t });
+      if (!productoExistente) {
+        throw { status: 400, message: `Producto con id ${p.producto_id} no existe` };
+      }
+
       await InventarioLote.create({
         producto_id: p.producto_id,
         cantidad: p.cantidad,
@@ -78,16 +93,15 @@ export async function registrarCompraService(data, usuario) {
     };
 
   } catch (error) {
-    // Rollback seguro
     if (t) await t.rollback();
     console.error("Error registrarCompraService:", error);
-
     throw {
       status: error.status || 500,
       message: error.message || "Error al registrar la compra"
     };
   }
 }
+
 
 
 
