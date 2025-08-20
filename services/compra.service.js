@@ -1,4 +1,4 @@
-import { Egreso, InventarioLote } from '../models/index.js';
+import { Egreso, InventarioLote,Caja } from '../models/index.js';
 import sequelize from '../config/database.js';
 import { agregarStockProducto } from './producto.service.js';
  
