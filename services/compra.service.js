@@ -219,8 +219,8 @@ export async function listarComprasService(query) {
           producto_id: l.producto_id,
           nombre: l.Producto?.nombre || "",
           cantidad: l.cantidad,
-          fecha_caducidad: l.fecha_caducidad,
-          precio_compra: l.precio_compra
+          fecha_caducidad: l.fecha_caducidad || "NO se Registro",
+        
         }))
       }))
     };
