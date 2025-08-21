@@ -52,6 +52,23 @@ export async function eliminarProducto(req, res) {
   }
 }
 
+export async function agregarStockProducto(req, res) {
+  try {
+    const { producto_id, cantidad, tipo_movimiento, observaciones } = req.body;
+
+    // Llamamos al servicio pasando los nuevos parámetros
+    const producto = await productoService.agregarStockProducto(
+      producto_id,
+      cantidad,
+      tipo_movimiento,
+      observaciones
+    );
+
+    res.status(201).json(producto);
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message || 'Error al agregar stock' });
+  }
+}
 
 
 export async function restarStockProducto(req, res) {
