@@ -6,7 +6,7 @@ import {
   HistorialProducto
 } from '../models/index.js'
 import sequelize from '../config/database.js'
-import { Op } from 'sequelize'
+import { Op,fn, col, literal  } from 'sequelize'
 
 export async function crearProductoService({
   nombre,
@@ -349,56 +349,50 @@ export async function obtenerProductoPorIdService(id) {
 }
 
 // Obtener productos más vendidos en los últimos 15 días
-/**
- * Obtiene los productos más vendidos en los últimos 15 días.
- * La función agrupa las ventas por producto y calcula la cantidad total vendida.
- * @returns {Promise<Array<Object>>} Una promesa que se resuelve en una lista de productos con su información de ventas.
- */
 export const obtenerProductosMasVendidos = async () => {
-    try {
-        // Calcular la fecha de hace 15 días.
-        const fechaLimite = new Date();
-        fechaLimite.setDate(fechaLimite.getDate() - 15);
+  try {
+    // Calcular la fecha de hace 15 días
+    const fechaLimite = new Date()
+    fechaLimite.setDate(fechaLimite.getDate() - 15)
 
-        // Realizar la consulta usando Sequelize
-     const productosMasVendidos = await DetalleVenta.findAll({
-    attributes: [
-        [sequelize.fn('SUM', sequelize.col('cantidad')), 'cantidad_vendida'],
-    ],
-    include: [
+    // Consulta con Sequelize
+    const productosMasVendidos = await DetalleVenta.findAll({
+      attributes: [
+        [fn('SUM', col('cantidad')), 'cantidad_vendida'],
+      ],
+      include: [
         {
-            model: Producto,
-            attributes: ['nombre', 'stock']
+          model: Producto,
+          attributes: ['nombre', 'stock']
         },
         {
-            model: Venta,
-            attributes: [],   // no necesitamos traer todas las columnas
-            required: true    // fuerza que exista la relación
+          model: Venta,
+          attributes: [],   // no necesitamos traer columnas de la venta
+          required: true,   // solo ventas que existan
+          where: {          // 👈 el filtro por fecha va aquí
+            created_at: {
+              [Op.gte]: fechaLimite
+            }
+          }
         }
-    ],
-    where: {
-        '$Venta.created_at$': {   // ✅ ahora sí Sequelize sabe resolverlo
-            [Op.gte]: fechaLimite,
-        },
-    },
-    group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
-    order: [[sequelize.literal('cantidad_vendida'), 'DESC']],
-    raw: true,
-})
+      ],
+      group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
+      order: [[literal('cantidad_vendida'), 'DESC']],
+      raw: true
+    })
 
-        // Formatear la respuesta para que sea más clara
-        return productosMasVendidos.map(item => ({
-            nombre: item['Producto.nombre'],
-            cantidad_vendida: item.cantidad_vendida,
-            stock_actual: item['Producto.stock'],
-        }));
+    // Formatear la respuesta
+    return productosMasVendidos.map(item => ({
+      nombre: item['Producto.nombre'],
+      cantidad_vendida: item.cantidad_vendida,
+      stock_actual: item['Producto.stock'],
+    }))
 
-    } catch (error) {
-        console.error('Error al obtener productos más vendidos:', error);
-        throw new Error('No se pudo generar el reporte de ventas. Por favor, intente de nuevo más tarde.');
-    }
-};
-
+  } catch (error) {
+    console.error('Error al obtener productos más vendidos:', error)
+    throw new Error('No se pudo generar el reporte de ventas. Por favor, intente de nuevo más tarde.')
+  }
+}
 
 
 
