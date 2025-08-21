@@ -17,6 +17,14 @@ const Egreso = sequelize.define('Egreso', {
   descripcion: {
     type: DataTypes.STRING(255)
   },
+  valor_ahorro_total: {
+    type: DataTypes.DECIMAL(10,2),
+    allowNull: true
+  },
+  unidades_gratis_total: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   factura_imagen: {
     type: DataTypes.STRING(255),
     allowNull: true

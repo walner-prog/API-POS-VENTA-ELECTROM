@@ -40,7 +40,20 @@ export async function registrarCompraService(data, usuario) {
       throw { status: 400, message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(2)}, faltan $${faltante}` };
     }
 
-    // 3️⃣ Crear egreso con monto_total indicado
+    // 2️⃣1️⃣ Calcular unidades gratis y valor de ahorro
+    let unidades_gratis_total = 0;
+    let valor_ahorro_total = 0;
+
+    for (const p of productos) {
+      if (p.unidades_gratis && p.unidades_gratis > 0) {
+        unidades_gratis_total += p.unidades_gratis;
+        // calcular valor según precio unitario
+        const precioUnitario = p.precio_unitario || 0; // puedes agregar precio_unitario en request si quieres
+        valor_ahorro_total += p.unidades_gratis * precioUnitario;
+      }
+    }
+
+    // 3️⃣ Crear egreso con monto_total y campos de ahorro
     const egreso = await Egreso.create(
       {
         tipo: "compra_productos",
@@ -51,6 +64,8 @@ export async function registrarCompraService(data, usuario) {
         caja_id: caja.id,
         fecha: fecha_compra || new Date(),
         factura_imagen: factura_imagen || null,
+        unidades_gratis_total,   // ✅ nuevas
+        valor_ahorro_total       // ✅ nuevas
       },
       { transaction: t }
     );
@@ -77,13 +92,16 @@ export async function registrarCompraService(data, usuario) {
         p.producto_id = producto.id;
       }
 
-      // Registrar lote (precio_compra opcional)
+      // Cantidad total de stock (comprada + gratis)
+      const cantidadTotal = p.cantidad + (p.unidades_gratis || 0);
+
+      // Registrar lote
       await InventarioLote.create(
         {
           producto_id: p.producto_id,
-          cantidad: p.cantidad,
+          cantidad: cantidadTotal,
           fecha_caducidad: p.fecha_caducidad || null,
-          precio_compra: 0, // o null si quieres
+          precio_compra: 0,
           proveedor,
           egreso_id: egreso.id,
         },
@@ -92,13 +110,13 @@ export async function registrarCompraService(data, usuario) {
 
       // Registrar movimiento de stock
       const stockAnterior = producto.stock;
-      const stockNuevo = stockAnterior + p.cantidad;
+      const stockNuevo = stockAnterior + cantidadTotal;
       await StockMovimiento.create(
         {
           producto_id: p.producto_id,
           usuario_id: usuario.id,
           tipo_movimiento: "compra",
-          cantidad: p.cantidad,
+          cantidad: cantidadTotal,
           stock_anterior: stockAnterior,
           stock_nuevo: stockNuevo,
           referencia_tipo: "egreso",
@@ -109,7 +127,7 @@ export async function registrarCompraService(data, usuario) {
       );
 
       // Actualizar stock
-      await agregarStockProducto(p.producto_id, p.cantidad, t);
+      await agregarStockProducto(p.producto_id, cantidadTotal, t);
     }
 
     await t.commit();
