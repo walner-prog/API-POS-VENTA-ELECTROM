@@ -374,9 +374,9 @@ export const obtenerProductosMasVendidos = async () => {
                 // Incluir el modelo de Venta para filtrar por fecha
                 model: Venta,
             }],
-            // Mover la cláusula `where` aquí para que se aplique correctamente
+            // Usar la columna `created_at` para filtrar, ya que es la fecha de la venta
             where: {
-                '$Venta.fecha_venta$': { // Usar esta sintaxis para referenciar una columna de una tabla unida
+                '$Venta.created_at$': {
                     [Op.gte]: fechaLimite,
                 },
             },
@@ -389,7 +389,6 @@ export const obtenerProductosMasVendidos = async () => {
         });
 
         // Formatear la respuesta para que sea más clara
-        // Sequelize nombra las columnas de las tablas incluidas con el formato 'Modelo.columna'
         return productosMasVendidos.map(item => ({
             nombre: item['Producto.nombre'],
             cantidad_vendida: item.cantidad_vendida,
