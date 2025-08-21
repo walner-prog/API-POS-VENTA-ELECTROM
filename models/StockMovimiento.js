@@ -5,7 +5,7 @@ import sequelize from '../config/database.js';
 const StockMovimiento = sequelize.define('StockMovimiento', {
   
   tipo_movimiento: {
-    type: DataTypes.ENUM('compra', 'venta', 'ajuste', 'devolucion', 'otro','Dañado','Perdido'),
+    type: DataTypes.ENUM('compra', 'venta', 'ajuste', 'devolucion', 'otro','dañado','perdido'),
     allowNull: false,
   },
   cantidad: {
@@ -21,7 +21,7 @@ const StockMovimiento = sequelize.define('StockMovimiento', {
     allowNull: false,
   },
   referencia_tipo: {
-    type: DataTypes.ENUM('egreso', 'venta', 'ajuste', 'otro', 'compra','devolucion','Dañado','Perdido'),
+    type: DataTypes.ENUM('egreso', 'venta', 'ajuste', 'otro', 'compra','devolucion','dañado','perdido'),
     allowNull: true,
   },
   referencia_id: {
