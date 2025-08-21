@@ -48,7 +48,6 @@ export async function registrarCompraService(data, usuario) {
       if (p.unidades_gratis && p.unidades_gratis > 0) {
         unidades_gratis_total += p.unidades_gratis;
 
-        // ⚡ Calcular ahorro proporcional según precio_total_producto
         const precioTotalProducto = p.precio_total_producto || 0;
         const ahorroProducto = (precioTotalProducto / p.cantidad) * p.unidades_gratis;
         valor_ahorro_total += ahorroProducto;
@@ -73,6 +72,8 @@ export async function registrarCompraService(data, usuario) {
     );
 
     // 4️⃣ Registrar productos, lotes y movimientos de stock
+    const detalleProductos = [];
+
     for (const p of productos) {
       if (!p.nombre || !p.categoria_id || !p.cantidad || p.cantidad <= 0)
         throw { status: 400, message: `Producto inválido` };
@@ -110,6 +111,7 @@ export async function registrarCompraService(data, usuario) {
 
       const stockAnterior = producto.stock;
       const stockNuevo = stockAnterior + cantidadTotal;
+
       await StockMovimiento.create(
         {
           producto_id: p.producto_id,
@@ -126,10 +128,37 @@ export async function registrarCompraService(data, usuario) {
       );
 
       await agregarStockProducto(p.producto_id, cantidadTotal, t);
+
+      // Agregar detalle del producto para la respuesta
+      const ahorroProducto = p.unidades_gratis
+        ? ((p.precio_total_producto || 0) / p.cantidad) * p.unidades_gratis
+        : 0;
+
+      detalleProductos.push({
+        producto_id: p.producto_id,
+        nombre: p.nombre,
+        categoria_id: p.categoria_id,
+        cantidad_comprada: p.cantidad,
+        unidades_gratis: p.unidades_gratis || 0,
+        cantidad_total: cantidadTotal,
+        precio_total: p.precio_total_producto || 0,
+        ahorro: ahorroProducto,
+        fecha_caducidad: p.fecha_caducidad || null
+      });
     }
 
     await t.commit();
-    return { success: true, egreso_id: egreso.id, productos_registrados: productos.length, caja_id: caja.id };
+
+    return {
+      success: true,
+      egreso_id: egreso.id,
+      caja_id: caja.id,
+      monto_total,
+      unidades_gratis_total,
+      valor_ahorro_total,
+      productos_registrados: productos.length,
+      detalle_productos: detalleProductos
+    };
   } catch (error) {
     if (t) await t.rollback();
     console.error("Error registrarCompraService:", error);
