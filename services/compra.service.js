@@ -28,12 +28,12 @@ export async function registrarCompraService(data, usuario) {
     const caja = await Caja.findOne({ where: { id: caja_id, estado: "abierta", abierto_por: usuario.id }, transaction: t });
     if (!caja) throw { status: 400, message: "Caja no encontrada o cerrada para este usuario" };
 
-    // Crear egreso sin depender de precios
+    // Crear egreso
     const egreso = await Egreso.create(
       {
         tipo: "compra_productos",
         descripcion: `Compra a proveedor ${referencia}`,
-        monto: data.monto_total || 0, // opcional, puede ser 0 si no se registra el precio
+        monto: data.monto_total || 0,
         referencia: referencia || null,
         usuario_id: usuario.id,
         caja_id: caja.id,
@@ -47,6 +47,7 @@ export async function registrarCompraService(data, usuario) {
       if (!p.nombre || !p.categoria_id || !p.cantidad || p.cantidad <= 0)
         throw { status: 400, message: `Producto inválido` };
 
+      // Buscar o crear producto
       let producto = await Producto.findByPk(p.producto_id, { transaction: t });
       if (!producto) {
         const codigo = p.codigo_barra || `CB-${Date.now()}`;
@@ -77,11 +78,13 @@ export async function registrarCompraService(data, usuario) {
         { transaction: t }
       );
 
-      // Registrar movimiento de stock
+      // Registrar movimiento de stock con producto_id y usuario_id
       const stockAnterior = producto.stock;
       const stockNuevo = stockAnterior + p.cantidad;
       await StockMovimiento.create(
         {
+          producto_id: p.producto_id,  // ✅ agregamos producto_id
+          usuario_id: usuario.id,       // ✅ agregamos usuario_id
           tipo_movimiento: "compra",
           cantidad: p.cantidad,
           stock_anterior: stockAnterior,
@@ -105,6 +108,7 @@ export async function registrarCompraService(data, usuario) {
     throw { status: error.status || 500, message: error.message || "Error al registrar la compra" };
   }
 }
+
 
 
 
