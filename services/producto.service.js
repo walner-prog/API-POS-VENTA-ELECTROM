@@ -3,7 +3,8 @@ import {
   Venta,
   DetalleVenta,
   Categoria,
-  HistorialProducto
+  HistorialProducto,
+  StockMovimiento
 } from '../models/index.js'
 import sequelize from '../config/database.js'
 import { Op,fn, col, literal  } from 'sequelize'
@@ -95,27 +96,42 @@ export async function crearProductoService({
 }
 
 
-export async function agregarStockProducto(producto_id, cantidad, transaction = null) {
-  if (cantidad <= 0)
-    throw { status: 400, message: "Cantidad debe ser mayor a 0" };
+export async function agregarStockProducto(producto_id, cantidad, tipo_movimiento = 'ajuste', observaciones = '', transaction = null) {
+  if (cantidad <= 0) throw { status: 400, message: "Cantidad debe ser mayor a 0" };
 
-  const options = transaction ? { transaction } : {};
+  const t = transaction || await sequelize.transaction();
+  try {
+    const producto = await Producto.findByPk(producto_id, { transaction: t });
+    if (!producto) throw { status: 404, message: "Producto no encontrado" };
 
-  const producto = await Producto.findByPk(producto_id, options);
-  if (!producto)
-    throw { status: 404, message: "Producto no encontrado" };
+    const stockAnterior = producto.stock;
+    producto.stock += cantidad;
+    await producto.save({ transaction: t });
 
-  producto.stock += cantidad;
-  await producto.save(options);
+    await StockMovimiento.create({
+      tipo_movimiento, // ahora dinámico
+      cantidad,
+      stock_anterior: stockAnterior,
+      stock_nuevo: producto.stock,
+      referencia_tipo: 'otro',
+      referencia_id: null,
+      observaciones
+    }, { transaction: t });
 
-  return {
-    success: true,
-    message: `Stock actualizado para el producto #${producto_id} - Nuevo stock: ${producto.stock}`,
-    producto_id,
-    stock_nuevo: producto.stock
-  };
+    if (!transaction) await t.commit();
+
+    return {
+      success: true,
+      message: `Stock actualizado para el producto #${producto_id} - Nuevo stock: ${producto.stock}`,
+      producto_id,
+      stock_nuevo: producto.stock
+    };
+
+  } catch (error) {
+    if (!transaction) await t.rollback();
+    throw error;
+  }
 }
- 
 
 
 
@@ -292,30 +308,41 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
 
 
 
-export async function restarStockProducto(producto_id, cantidad) {
-  const t = await sequelize.transaction();
-  try {
-    if (cantidad <= 0)
-      throw { status: 400, message: "Cantidad debe ser mayor a 0" };
+export async function restarStockProducto(producto_id, cantidad, tipo_movimiento = 'ajuste', observaciones = '', transaction = null) {
+  if (cantidad <= 0) throw { status: 400, message: "Cantidad debe ser mayor a 0" };
 
+  const t = transaction || await sequelize.transaction();
+  try {
     const producto = await Producto.findByPk(producto_id, { transaction: t });
     if (!producto) throw { status: 404, message: "Producto no encontrado" };
 
+    const stockAnterior = producto.stock;
     producto.stock -= cantidad;
-    if (producto.stock < 0) producto.stock = 0; // Evitar stock negativo
+    if (producto.stock < 0) producto.stock = 0;
 
     await producto.save({ transaction: t });
 
-    await t.commit();
+    await StockMovimiento.create({
+      tipo_movimiento, // ahora dinámico
+      cantidad,
+      stock_anterior: stockAnterior,
+      stock_nuevo: producto.stock,
+      referencia_tipo: 'otro',
+      referencia_id: null,
+      observaciones
+    }, { transaction: t });
+
+    if (!transaction) await t.commit();
+
     return {
-    success: true,
-    message: `Stock actualizado para el producto #${producto_id} - Nuevo stock: ${producto.stock}`,
-    producto_id,
-    stock_nuevo: producto.stock
-  };
-  
+      success: true,
+      message: `Stock actualizado para el producto #${producto_id} - Nuevo stock: ${producto.stock}`,
+      producto_id,
+      stock_nuevo: producto.stock
+    };
+
   } catch (error) {
-    await t.rollback();
+    if (!transaction) await t.rollback();
     throw error;
   }
 }
