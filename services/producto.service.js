@@ -349,11 +349,13 @@ export async function obtenerProductoPorIdService(id) {
 }
 
 // Obtener productos más vendidos en los últimos 15 días
-export const obtenerProductosMasVendidos = async () => {
+export const obtenerProductosMasVendidos = async (page = 1, limit = 10) => {
   try {
-    // Calcular la fecha de hace 15 días
+    // Calcular la fecha de hace 30 días
     const fechaLimite = new Date()
-    fechaLimite.setDate(fechaLimite.getDate() - 15)
+    fechaLimite.setDate(fechaLimite.getDate() - 30)
+
+    const offset = (page - 1) * limit
 
     // Consulta con Sequelize
     const productosMasVendidos = await DetalleVenta.findAll({
@@ -367,9 +369,9 @@ export const obtenerProductosMasVendidos = async () => {
         },
         {
           model: Venta,
-          attributes: [],   // no necesitamos traer columnas de la venta
-          required: true,   // solo ventas que existan
-          where: {          // 👈 el filtro por fecha va aquí
+          attributes: [],
+          required: true,
+          where: {
             created_at: {
               [Op.gte]: fechaLimite
             }
@@ -378,10 +380,11 @@ export const obtenerProductosMasVendidos = async () => {
       ],
       group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
       order: [[literal('cantidad_vendida'), 'DESC']],
+      limit,
+      offset,
       raw: true
     })
 
-    // Formatear la respuesta
     return productosMasVendidos.map(item => ({
       nombre: item['Producto.nombre'],
       cantidad_vendida: item.cantidad_vendida,
@@ -393,6 +396,7 @@ export const obtenerProductosMasVendidos = async () => {
     throw new Error('No se pudo generar el reporte de ventas. Por favor, intente de nuevo más tarde.')
   }
 }
+
 
 
 

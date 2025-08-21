@@ -148,22 +148,30 @@ export async function obtenerProductos(req, res) {
   }
 }
 
-export const getProductosMasVendidos = async (req, res) => {
-    try {
-        // Llama a la función del servicio para obtener los datos
-        const productosVendidos = await productoService.obtenerProductosMasVendidos();
-        
-        // Si no hay productos, envía una respuesta clara
-        if (!productosVendidos || productosVendidos.length === 0) {
-            return res.status(404).json({ message: "No se encontraron ventas en los últimos 15 días." });
-        }
 
-        // Envía los datos como una respuesta JSON
-        res.status(200).json(productosVendidos);
-    } catch (error) {
-        // Maneja los errores internos del servidor
-        console.error('Error en el controlador de productos más vendidos:', error);
-        res.status(500).json({ message: 'Error interno del servidor al generar el reporte.' });
+export const getProductosMasVendidos = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query   // 👈 paginación desde el cliente
+
+    const productosVendidos = await productoService.obtenerProductosMasVendidos(
+      parseInt(page),
+      parseInt(limit)
+    )
+
+    if (!productosVendidos || productosVendidos.length === 0) {
+      return res.status(404).json({ message: "No se encontraron ventas en los últimos 30 días." })
     }
-};
+
+    res.status(200).json({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      data: productosVendidos
+    })
+
+  } catch (error) {
+    console.error('Error en el controlador de productos más vendidos:', error)
+    res.status(500).json({ message: 'Error interno del servidor al generar el reporte.' })
+  }
+}
+
 
