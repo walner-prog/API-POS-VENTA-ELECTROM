@@ -1,5 +1,5 @@
 import sequelize from '../../config/database.js'
-import { Venta, Caja, Ticket } from '../../models/index.js'
+import { Venta, Caja, Ticket,Producto } from '../../models/index.js'
 import { validarStock } from './utils/validarStock.js'
 import { descontarStock } from './utils/descontarStock.js'
 
