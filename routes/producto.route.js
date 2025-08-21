@@ -28,6 +28,6 @@ router.get('/todos/productos', authMiddleware, obtenerProductos);
 router.post('/stock/agregar', authMiddleware,validarAgregarStock, agregarStockProducto);
 router.post('/stock/restar', authMiddleware,validarRestarStock, restarStockProducto);
 router.get('/stock/por-vencer', authMiddleware, productosPorVencer);
-router.get('/mas-vendidos', authMiddleware, getProductosMasVendidos);
+router.get('/mas-vendidos/en/plazo/15/dias', authMiddleware, getProductosMasVendidos);
 
 export default router;
