@@ -14,10 +14,22 @@ export async function registrarCompra(req, res) {
 
 export async function listarCompras(req, res) {
   try {
-    const compras = await listarComprasService(req.query);
-    res.json(compras);
+    const { total, pagina, limite, total_paginas, data } = await listarComprasService(req.query);
+
+    res.json({
+      success: true,
+      total,
+      pagina,
+      limite,
+      total_paginas,
+      data
+    });
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    console.error("Error en listarCompras:", error);
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || "Error al listar las compras"
+    });
   }
 }
 

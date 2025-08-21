@@ -175,24 +175,21 @@ export async function registrarCompraService(data, usuario) {
 
 export async function listarComprasService(query) {
   try {
-    const { proveedor, limite = 50, pagina = 1 } = query;
+    const { proveedor, limite = 10, pagina = 1 } = query;
 
     const where = {};
     if (proveedor) where.proveedor = proveedor;
 
-    const compras = await Egreso.findAll({
+    // ⚡ Usamos findAndCountAll para obtener registros + total en una sola consulta
+    const { rows: compras, count: total } = await Egreso.findAndCountAll({
       where: { ...where, tipo: "compra_productos" },
       include: [
         {
           model: InventarioLote,
-          as: "lotes",
-          include: [
-            { model: Producto, as: "producto" }
-          ]
+          include: [{ model: Producto }]
         },
         {
           model: Usuario
-         
         }
       ],
       order: [["fecha", "DESC"]],
@@ -200,28 +197,38 @@ export async function listarComprasService(query) {
       offset: (parseInt(pagina) - 1) * parseInt(limite)
     });
 
-    return compras.map(c => ({
-      egreso_id: c.id,
-      referencia: c.referencia,
-      proveedor: c.proveedor,
-      fecha: c.fecha,
-      monto: c.monto,
-      unidades_gratis_total: c.unidades_gratis_total,
-      valor_ahorro_total: c.valor_ahorro_total,
-      usuario: c.usuario ? { id: c.usuario.id, nombre: c.usuario.nombre } : null,
-      productos: c.lotes.map(l => ({
-        producto_id: l.producto_id,
-        nombre: l.producto?.nombre || "",
-        cantidad: l.cantidad,
-        fecha_caducidad: l.fecha_caducidad,
-        precio_compra: l.precio_compra
+    // Formatear respuesta
+    return {
+      total,                          // total de compras
+      pagina: parseInt(pagina),       // página actual
+      limite: parseInt(limite),       // límite por página
+      total_paginas: Math.ceil(total / limite), // número total de páginas
+      data: compras.map(c => ({
+        egreso_id: c.id,
+        referencia: c.referencia,
+        proveedor: c.proveedor,
+        fecha: c.fecha,
+        monto: c.monto,
+        unidades_gratis_total: c.unidades_gratis_total,
+        valor_ahorro_total: c.valor_ahorro_total,
+        usuario: c.Usuario
+          ? { id: c.Usuario.id, nombre: c.Usuario.nombre }
+          : null,
+        productos: c.InventarioLotes.map(l => ({
+          producto_id: l.producto_id,
+          nombre: l.Producto?.nombre || "",
+          cantidad: l.cantidad,
+          fecha_caducidad: l.fecha_caducidad,
+          precio_compra: l.precio_compra
+        }))
       }))
-    }));
+    };
   } catch (error) {
     console.error("Error listarComprasService:", error);
     throw { status: 500, message: "Error al listar las compras" };
   }
 }
+
 
 
 export async function obtenerCompraPorIdService(id) {
