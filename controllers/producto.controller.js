@@ -175,3 +175,24 @@ export const getProductosMasVendidos = async (req, res) => {
 }
 
 
+ 
+
+export const getProductosMenosVendidos = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10
+
+    const productos = await productoService.obtenerProductosMenosVendidos(limit)
+
+    if (!productos || productos.length === 0) {
+      return res.status(404).json({ message: "No se encontraron ventas en los últimos 30 días." })
+    }
+
+    return res.status(200).json(productos)
+  } catch (error) {
+    console.error('Error en el controlador de productos menos vendidos:', error)
+    res.status(500).json({ message: 'Error interno del servidor al generar el reporte.' })
+  }
+}
+
+
+

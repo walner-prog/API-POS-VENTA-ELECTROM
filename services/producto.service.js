@@ -348,7 +348,7 @@ export async function obtenerProductoPorIdService(id) {
   return producto;
 }
 
-// Obtener productos más vendidos en los últimos 15 días
+// Obtener productos más vendidos en los últimos 30 días
 export const obtenerProductosMasVendidos = async (page = 1, limit = 10) => {
   try {
     // Calcular la fecha de hace 30 días
@@ -396,6 +396,52 @@ export const obtenerProductosMasVendidos = async (page = 1, limit = 10) => {
     throw new Error('No se pudo generar el reporte de ventas. Por favor, intente de nuevo más tarde.')
   }
 }
+
+ // Obtener los 10 productos menos vendidos
+
+export const obtenerProductosMenosVendidos = async (limit = 10) => {
+  try {
+    // Fecha límite = últimos 30 días
+    const fechaLimite = new Date()
+    fechaLimite.setDate(fechaLimite.getDate() - 30)
+
+    const productos = await DetalleVenta.findAll({
+      attributes: [
+        [fn('SUM', col('cantidad')), 'cantidad_vendida'],
+      ],
+      include: [
+        {
+          model: Producto,
+          attributes: ['nombre', 'stock']
+        },
+        {
+          model: Venta,
+          attributes: [],
+          required: true,
+          where: {
+            created_at: {
+              [Op.gte]: fechaLimite
+            }
+          }
+        }
+      ],
+      group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
+      order: [[literal('cantidad_vendida'), 'ASC']], // 👈 menos vendidos primero
+      limit,
+      raw: true
+    })
+
+    return productos.map(item => ({
+      nombre: item['Producto.nombre'],
+      cantidad_vendida: parseInt(item.cantidad_vendida, 10),
+      stock_actual: item['Producto.stock'],
+    }))
+  } catch (error) {
+    console.error('Error al obtener productos menos vendidos:', error)
+    throw new Error('No se pudo generar el reporte de productos menos vendidos.')
+  }
+}
+
 
 
 
