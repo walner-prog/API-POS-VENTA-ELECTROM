@@ -361,32 +361,30 @@ export const obtenerProductosMasVendidos = async () => {
         fechaLimite.setDate(fechaLimite.getDate() - 15);
 
         // Realizar la consulta usando Sequelize
-        const productosMasVendidos = await DetalleVenta.findAll({
-            attributes: [
-                // Sumar la cantidad total de cada producto vendido
-                [sequelize.fn('SUM', sequelize.col('cantidad')), 'cantidad_vendida'],
-            ],
-            include: [{
-                // Incluir el modelo de Producto para obtener su nombre y stock
-                model: Producto,
-                attributes: ['nombre', 'stock']
-            }, {
-                // Incluir el modelo de Venta para filtrar por fecha
-                model: Venta,
-            }],
-            // Usar la columna `created_at` para filtrar, ya que es la fecha de la venta
-            where: {
-                '$Venta.created_at$': {
-                    [Op.gte]: fechaLimite,
-                },
-            },
-            group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
-            order: [
-                [sequelize.literal('cantidad_vendida'), 'DESC']
-            ],
-            // `raw: true` devolverá un array de objetos planos.
-            raw: true,
-        });
+     const productosMasVendidos = await DetalleVenta.findAll({
+    attributes: [
+        [sequelize.fn('SUM', sequelize.col('cantidad')), 'cantidad_vendida'],
+    ],
+    include: [
+        {
+            model: Producto,
+            attributes: ['nombre', 'stock']
+        },
+        {
+            model: Venta,
+            attributes: [],   // no necesitamos traer todas las columnas
+            required: true    // fuerza que exista la relación
+        }
+    ],
+    where: {
+        '$Venta.created_at$': {   // ✅ ahora sí Sequelize sabe resolverlo
+            [Op.gte]: fechaLimite,
+        },
+    },
+    group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
+    order: [[sequelize.literal('cantidad_vendida'), 'DESC']],
+    raw: true,
+})
 
         // Formatear la respuesta para que sea más clara
         return productosMasVendidos.map(item => ({
