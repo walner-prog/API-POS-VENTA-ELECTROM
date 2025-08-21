@@ -30,6 +30,6 @@ router.post('/stock/agregar', authMiddleware,validarAgregarStock, agregarStockPr
 router.post('/stock/restar', authMiddleware,validarRestarStock, restarStockProducto);
 router.get('/stock/por-vencer', authMiddleware, productosPorVencer);
 router.get('/mas-vendidos/en/plazo/30/dias', authMiddleware, getProductosMasVendidos);
-router.get('/menos-vendidos/en/plazo/30/dias', authMiddleware, getProductosMenosVendidos);
+router.get('/menos-vendidos/10/en/plazo/30/dias', authMiddleware, getProductosMenosVendidos);
 
 export default router;
