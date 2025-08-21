@@ -348,6 +348,57 @@ export async function obtenerProductoPorIdService(id) {
   return producto;
 }
 
+// Obtener productos más vendidos en los últimos 15 días
+export const obtenerProductosMasVendidos = async () => {
+    try {
+        // Calcular la fecha de hace 15 días.
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() - 15);
+
+        // Realizar la consulta usando Sequelize
+        const productosMasVendidos = await DetalleVenta.findAll({
+            attributes: [
+                // Sumar la cantidad total de cada producto vendido
+                [sequelize.fn('SUM', sequelize.col('cantidad')), 'cantidad_vendida'],
+            ],
+            include: [{
+                // Incluir el modelo de Producto para obtener su nombre y stock
+                model: Producto,
+                // No se necesita "as" ya que no usas alias en la definicion de tus relaciones
+                attributes: ['nombre', 'stock']
+            }, {
+                // Incluir el modelo de Venta para filtrar por fecha
+                model: Venta,
+                // No se necesita "as"
+                where: {
+                    fecha_venta: {
+                        [Op.gte]: fechaLimite,
+                    },
+                },
+            }, ],
+            group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
+            order: [
+                [sequelize.literal('cantidad_vendida'), 'DESC']
+            ],
+            // `raw: true` devolverá un array de objetos planos.
+            raw: true,
+        });
+
+        // Formatear la respuesta para que sea más clara
+        // Sequelize nombra las columnas de las tablas incluidas con el formato 'Modelo.columna'
+        return productosMasVendidos.map(item => ({
+            nombre: item['Producto.nombre'],
+            cantidad_vendida: item.cantidad_vendida,
+            stock_actual: item['Producto.stock'],
+        }));
+
+    } catch (error) {
+        console.error('Error al obtener productos más vendidos:', error);
+        throw new Error('No se pudo generar el reporte de ventas. Por favor, intente de nuevo más tarde.');
+    }
+};
+
+
 
 
  

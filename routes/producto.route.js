@@ -9,7 +9,8 @@ import {
   productosPorVencer ,
   obtenerHistorialProducto,
   obtenerProductoPorIdController,
-  obtenerProductos
+  obtenerProductos,
+  getProductosMasVendidos
 } from '../controllers/producto.controller.js'
 import { validarAgregarStock, validarRestarStock } from '../validator/productoStock.validation.js'
 import authMiddleware from '../middlewares/auth.js'
@@ -27,5 +28,6 @@ router.get('/todos/productos', authMiddleware, obtenerProductos);
 router.post('/stock/agregar', authMiddleware,validarAgregarStock, agregarStockProducto);
 router.post('/stock/restar', authMiddleware,validarRestarStock, restarStockProducto);
 router.get('/stock/por-vencer', authMiddleware, productosPorVencer);
+router.get('/mas-vendidos', authMiddleware, getProductosMasVendidos);
 
 export default router;
