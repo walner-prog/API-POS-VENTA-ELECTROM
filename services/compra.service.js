@@ -192,7 +192,8 @@ export async function listarComprasService(query) {
           model: Usuario
         }
       ],
-      order: [["fecha", "DESC"]],
+     order: [["created_at", "DESC"]],
+
       limit: parseInt(limite),
       offset: (parseInt(pagina) - 1) * parseInt(limite)
     });
@@ -207,7 +208,7 @@ export async function listarComprasService(query) {
         egreso_id: c.id,
         referencia: c.referencia,
         proveedor: c.proveedor,
-        fecha: c.fecha,
+        created_at: c.created_at,
         monto: c.monto,
         unidades_gratis_total: c.unidades_gratis_total,
         valor_ahorro_total: c.valor_ahorro_total,
