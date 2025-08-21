@@ -1,17 +1,15 @@
 import { Producto, DetalleVenta } from "../../../models/index.js";
 
+ 
+
 export async function descontarStock(carrito, venta_id, transaction) {
   for (const item of carrito) {
     const producto = await Producto.findByPk(item.producto_id, { transaction, lock: transaction.LOCK.UPDATE });
 
-    if (!producto) {
-      throw { status: 404, message: `Producto ID ${item.producto_id} no encontrado` };
-    }
+    if (!producto) throw { status: 404, message: `Producto ID ${item.producto_id} no encontrado` };
+    if (producto.stock < item.cantidad) throw { status: 400, message: `Stock insuficiente para ${producto.nombre}` };
 
-    if (producto.stock < item.cantidad) {
-      throw { status: 400, message: `Stock insuficiente para ${producto.nombre}` };
-    }
-
+    // Guardar detalle de venta con precio ya con descuento
     await DetalleVenta.create({
       venta_id,
       producto_id: item.producto_id,
@@ -20,7 +18,9 @@ export async function descontarStock(carrito, venta_id, transaction) {
       total_linea: item.total_linea,
     }, { transaction });
 
+    // Descontar stock
     producto.stock -= item.cantidad;
     await producto.save({ transaction });
   }
 }
+

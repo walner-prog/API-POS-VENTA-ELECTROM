@@ -38,6 +38,12 @@ const Producto = sequelize.define('Producto', {
     type: DataTypes.STRING(50),
     allowNull: true
   },
+  descuento: {
+  type: DataTypes.DECIMAL(5,2),
+  defaultValue: 0.00, // valor en porcentaje
+  allowNull: false
+},
+
   
 }, {
   tableName: 'productos',

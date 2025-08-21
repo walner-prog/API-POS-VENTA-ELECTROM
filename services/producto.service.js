@@ -16,7 +16,8 @@ export async function crearProductoService({
   precio_venta,
   unidad_medida,
   presentacion,
-  stock  
+  stock,
+  descuento
 }) {
   const t = await sequelize.transaction()
   try {
@@ -79,6 +80,7 @@ export async function crearProductoService({
       precio_compra,
       precio_venta,
       utilidad,
+      descuento: descuento || 0.00,
       unidad_medida: unidad_medida || null,
       presentacion: presentacion || null,
       stock: stock  || 0
@@ -115,11 +117,13 @@ export async function agregarStockProducto(producto_id, cantidad, transaction = 
 }
  
 
+
+
 export async function editarProductoService(id, data) {
-  const t = await sequelize.transaction()
+  const t = await sequelize.transaction();
   try {
-    const producto = await Producto.findByPk(id, { transaction: t })
-    if (!producto) throw { status: 404, message: 'Producto no encontrado' }
+    const producto = await Producto.findByPk(id, { transaction: t });
+    if (!producto) throw { status: 404, message: 'Producto no encontrado' };
 
     // Validaciones de código de barra
     if (data.codigo_barra && data.codigo_barra !== producto.codigo_barra) {
@@ -129,47 +133,41 @@ export async function editarProductoService(id, data) {
           id: { [Op.ne]: id }
         },
         transaction: t
-      })
+      });
       if (existeOtro) {
-        throw {
-          status: 400,
-          message: 'Ya existe otro producto con ese código de barra.'
-        }
+        throw { status: 400, message: 'Ya existe otro producto con ese código de barra.' };
       }
     }
 
-
+    // Validaciones de precios
     if (typeof data.precio_compra !== 'number' || data.precio_compra <= 0) {
-  throw { status: 400, message: 'El precio de compra debe ser un número mayor a cero.' }
-}
-
-if (typeof data.precio_venta !== 'number' || data.precio_venta <= 0) {
-  throw { status: 400, message: 'El precio de venta debe ser un número mayor a cero.' }
-}
-
-if (data.precio_venta <= data.precio_compra) {
-  throw {
-    status: 400,
-    message: 'El precio de venta debe ser mayor que el precio de compra.'
-  }
-}
-
-if (data.stock <= 0) {
-  throw {
-    status: 400,
-    message: 'El stock debe ser mayor que cero.'
-  }
-}
-
-
-
-    // Valores previos para monitoreo de cambios
-    const valoresAnteriores = {
-      precio_compra: producto.precio_compra,
-      precio_venta: producto.precio_venta
+      throw { status: 400, message: 'El precio de compra debe ser un número mayor a cero.' };
     }
 
-    // Actualizar campos excepto utilidad
+    if (typeof data.precio_venta !== 'number' || data.precio_venta <= 0) {
+      throw { status: 400, message: 'El precio de venta debe ser un número mayor a cero.' };
+    }
+
+    if (data.precio_venta <= data.precio_compra) {
+      throw { status: 400, message: 'El precio de venta debe ser mayor que el precio de compra.' };
+    }
+
+    if (data.stock <= 0) {
+      throw { status: 400, message: 'El stock debe ser mayor que cero.' };
+    }
+
+    if (data.descuento !== undefined && (data.descuento < 0 || data.descuento > 100)) {
+      throw { status: 400, message: 'El descuento debe estar entre 0 y 100%' };
+    }
+
+    // Valores previos para monitoreo
+    const valoresAnteriores = {
+      precio_compra: producto.precio_compra,
+      precio_venta: producto.precio_venta,
+      descuento: producto.descuento
+    };
+
+    // Actualizar campos
     const campos = [
       'nombre',
       'codigo_barra',
@@ -178,19 +176,19 @@ if (data.stock <= 0) {
       'precio_venta',
       'stock',
       'unidad_medida',
-      'presentacion'
-    ]
+      'presentacion',
+      'descuento' // Nuevo campo
+    ];
     for (const campo of campos) {
-      if (campo in data) producto[campo] = data[campo] || null
+      if (campo in data) producto[campo] = data[campo] || null;
     }
 
     // Recalcular utilidad con los valores actualizados
-    producto.utilidad = producto.precio_venta - producto.precio_compra
+    producto.utilidad = producto.precio_venta - producto.precio_compra;
 
-    // Monitorear solo precio_compra y precio_venta para historial
-    const camposAMonitorear = ['precio_compra', 'precio_venta']
-    const cambios = []
-
+    // Monitorear cambios para historial
+    const camposAMonitorear = ['precio_compra', 'precio_venta', 'descuento'];
+    const cambios = [];
     for (const campo of camposAMonitorear) {
       if (campo in data && data[campo] !== valoresAnteriores[campo]) {
         cambios.push({
@@ -199,21 +197,21 @@ if (data.stock <= 0) {
           valor_anterior: valoresAnteriores[campo],
           valor_nuevo: data[campo],
           usuario_id: data.usuario_id || null
-        })
+        });
       }
     }
 
-    // Guardar producto e historial en transacción
-    await producto.save({ transaction: t })
+    // Guardar producto e historial
+    await producto.save({ transaction: t });
     if (cambios.length > 0) {
-      await HistorialProducto.bulkCreate(cambios, { transaction: t })
+      await HistorialProducto.bulkCreate(cambios, { transaction: t });
     }
 
-    await t.commit()
-    return producto
+    await t.commit();
+    return producto;
   } catch (error) {
-    await t.rollback()
-    throw error
+    await t.rollback();
+    throw error;
   }
 }
 
