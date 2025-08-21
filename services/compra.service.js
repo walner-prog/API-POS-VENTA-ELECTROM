@@ -233,16 +233,46 @@ export async function listarComprasService(query) {
 
 
 export async function obtenerCompraPorIdService(id) {
-  const compra = await Egreso.findOne({
-    where: {
-      id,
-      tipo: "compra_producto",
-    },
-    include: [
-      {
-        model: InventarioLote,
+  try {
+    const compra = await Egreso.findOne({
+      where: {
+        id,
+        tipo: "compra_productos", // asegúrate de que coincide con listarComprasService
       },
-    ],
-  });
-  return compra;
+      include: [
+        {
+          model: InventarioLote,
+          include: [{ model: Producto }],
+        },
+        {
+          model: Usuario,
+        },
+      ],
+    });
+
+    if (!compra) return null;
+
+    // Formatear la respuesta igual que listarComprasService
+    return {
+      egreso_id: compra.id,
+      referencia: compra.referencia,
+      proveedor: compra.proveedor,
+      created_at: compra.created_at,
+      monto: compra.monto,
+      unidades_gratis_total: compra.unidades_gratis_total,
+      valor_ahorro_total: compra.valor_ahorro_total,
+      usuario: compra.Usuario
+        ? { id: compra.Usuario.id, nombre: compra.Usuario.nombre }
+        : null,
+      productos: compra.InventarioLotes.map(l => ({
+        producto_id: l.producto_id,
+        nombre: l.Producto?.nombre || "",
+        cantidad: l.cantidad,
+        fecha_caducidad: l.fecha_caducidad || "NO se Registro",
+      })),
+    };
+  } catch (error) {
+    console.error("Error obtenerCompraPorIdService:", error);
+    throw { status: 500, message: "Error al obtener la compra" };
+  }
 }

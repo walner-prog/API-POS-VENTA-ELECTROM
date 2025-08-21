@@ -33,11 +33,25 @@ export async function listarCompras(req, res) {
   }
 }
 
+// Controlador para obtener una compra específica por ID
 export async function obtenerCompraPorId(req, res) {
+  const { id } = req.params; // obtenemos el id desde los parámetros de la URL
+
+  if (!id) {
+    return res.status(400).json({ message: "El ID de la compra es obligatorio" });
+  }
+
   try {
-    const compra = await obtenerCompraPorIdService(req.params.id);
+    const compra = await obtenerCompraPorIdService(id);
+
+    if (!compra) {
+      return res.status(404).json({ message: "Compra no encontrada" });
+    }
+
     res.json(compra);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    console.error("Error al obtener la compra:", error);
+    res.status(error.status || 500).json({ message: error.message || "Error interno del servidor" });
   }
 }
+
