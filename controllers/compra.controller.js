@@ -3,7 +3,7 @@ import  { registrarCompraService, listarComprasService, obtenerCompraPorIdServic
  
 export async function registrarCompra(req, res) {
   try {
-    // 🔑 Nota: usamos req.usuario, no req.user
+     
     const compra = await registrarCompraService(req.body, req.usuario);
     res.status(201).json(compra);
   } catch (error) {

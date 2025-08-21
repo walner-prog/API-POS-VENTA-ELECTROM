@@ -4,7 +4,8 @@ import {
   Caja,
   Producto,
   Venta,
-  StockMovimiento
+  StockMovimiento,
+  Usuario
    
 } from "../models/index.js";
 import sequelize from "../config/database.js";
@@ -190,8 +191,8 @@ export async function listarComprasService(query) {
           ]
         },
         {
-          model: Usuario,
-          as: "usuario"
+          model: Usuario
+         
         }
       ],
       order: [["fecha", "DESC"]],
