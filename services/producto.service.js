@@ -167,7 +167,7 @@ export async function editarProductoService(id, data) {
       descuento: producto.descuento
     };
 
-    // Actualizar campos
+    // Actualizar campos correctamente
     const campos = [
       'nombre',
       'codigo_barra',
@@ -180,10 +180,17 @@ export async function editarProductoService(id, data) {
       'descuento' // Nuevo campo
     ];
     for (const campo of campos) {
-      if (campo in data) producto[campo] = data[campo] || null;
+      if (campo in data) {
+        // Asigna el valor tal cual; si es opcional y vacío, entonces null
+        if (['codigo_barra', 'unidad_medida', 'presentacion', 'categoria_id'].includes(campo) && !data[campo]) {
+          producto[campo] = null;
+        } else {
+          producto[campo] = data[campo];
+        }
+      }
     }
 
-    // Recalcular utilidad con los valores actualizados
+    // Recalcular utilidad
     producto.utilidad = producto.precio_venta - producto.precio_compra;
 
     // Monitorear cambios para historial
@@ -214,6 +221,7 @@ export async function editarProductoService(id, data) {
     throw error;
   }
 }
+
 
 
 
