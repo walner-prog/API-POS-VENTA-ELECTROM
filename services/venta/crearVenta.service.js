@@ -5,7 +5,7 @@ import { descontarStock } from './utils/descontarStock.js'
 
  
 
-export async function crearVentaService({ carrito, cliente_nombre, observacion }, usuario_id) {
+export async function crearVentaService({ carrito, cliente_nombre, observacion, ivaPorc = 0 }, usuario_id) {
   const t = await sequelize.transaction();
   const start = Date.now();
 
@@ -33,7 +33,8 @@ export async function crearVentaService({ carrito, cliente_nombre, observacion }
       subtotal += item.total_linea;
     }
 
-    const iva = parseFloat((subtotal * 0.15).toFixed(2)); // ejemplo 15%
+    // Calcular IVA según el porcentaje recibido
+    const iva = parseFloat((subtotal * (ivaPorc / 100)).toFixed(2));
     const total = subtotal + iva;
 
     // Crear venta
@@ -77,4 +78,5 @@ export async function crearVentaService({ carrito, cliente_nombre, observacion }
     throw error;
   }
 }
+
 
