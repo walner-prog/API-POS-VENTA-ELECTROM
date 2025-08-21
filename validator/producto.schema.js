@@ -13,7 +13,8 @@ export const crearProductoSchema = Joi.object({
   
   venta_mayoreo: Joi.boolean().optional(),
   precio_mayoreo: Joi.number().precision(2).optional().allow(null),
-  minimo_mayoreo: Joi.number().integer().optional().allow(null)
+  minimo_mayoreo: Joi.number().integer().optional().allow(null),
+   descuento: Joi.number().min(0).max(100).optional()  // ← agrega esto
 })
 
 export const editarProductoSchema = crearProductoSchema
