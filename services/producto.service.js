@@ -96,7 +96,13 @@ export async function crearProductoService({
 }
 
 
-export async function agregarStockProducto(producto_id, cantidad, tipo_movimiento = 'ajuste', observaciones = '', transaction = null) {
+export async function agregarStockProducto(
+  producto_id,
+  cantidad,
+  tipo_movimiento = 'ajuste',
+  observaciones = '',
+  transaction = null
+) {
   if (cantidad <= 0) throw { status: 400, message: "Cantidad debe ser mayor a 0" };
 
   const t = transaction || await sequelize.transaction();
@@ -109,7 +115,8 @@ export async function agregarStockProducto(producto_id, cantidad, tipo_movimient
     await producto.save({ transaction: t });
 
     await StockMovimiento.create({
-      tipo_movimiento, // ahora dinámico
+      producto_id,         // 👈 guardamos el producto
+      tipo_movimiento,     
       cantidad,
       stock_anterior: stockAnterior,
       stock_nuevo: producto.stock,
@@ -132,6 +139,7 @@ export async function agregarStockProducto(producto_id, cantidad, tipo_movimient
     throw error;
   }
 }
+
 
 
 
@@ -308,7 +316,13 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
 
 
 
-export async function restarStockProducto(producto_id, cantidad, tipo_movimiento = 'ajuste', observaciones = '', transaction = null) {
+export async function restarStockProducto(
+  producto_id,
+  cantidad,
+  tipo_movimiento = 'ajuste',
+  observaciones = '',
+  transaction = null
+) {
   if (cantidad <= 0) throw { status: 400, message: "Cantidad debe ser mayor a 0" };
 
   const t = transaction || await sequelize.transaction();
@@ -323,7 +337,8 @@ export async function restarStockProducto(producto_id, cantidad, tipo_movimiento
     await producto.save({ transaction: t });
 
     await StockMovimiento.create({
-      tipo_movimiento, // ahora dinámico
+      producto_id,          // 👈 guardamos el producto
+      tipo_movimiento,
       cantidad,
       stock_anterior: stockAnterior,
       stock_nuevo: producto.stock,
@@ -346,6 +361,7 @@ export async function restarStockProducto(producto_id, cantidad, tipo_movimiento
     throw error;
   }
 }
+
 
 
 
