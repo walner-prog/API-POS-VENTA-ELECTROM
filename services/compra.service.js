@@ -4,7 +4,6 @@ import {
   Caja,
   Producto,
   Venta,
-  Categoria,
   StockMovimiento
    
 } from "../models/index.js";
@@ -12,28 +11,41 @@ import sequelize from "../config/database.js";
 import { agregarStockProducto } from "./producto.service.js";
 
  
-
 export async function registrarCompraService(data, usuario) {
   const t = await sequelize.transaction();
   try {
     if (!usuario || !usuario.id) throw { status: 401, message: "Usuario no autenticado" };
 
-    const { referencia, fecha_compra, factura_imagen, productos, proveedor, caja_id } = data;
+    const { referencia, fecha_compra, factura_imagen, productos, proveedor, caja_id, monto_total } = data;
 
     if (!productos || !Array.isArray(productos) || productos.length === 0)
       throw { status: 400, message: "Debe incluir al menos un producto para la compra" };
 
     if (!proveedor) throw { status: 400, message: "Debe especificar un proveedor" };
 
+    if (!monto_total || monto_total <= 0)
+      throw { status: 400, message: "Debe indicar el monto total de la compra" };
+
+    // 1️⃣ Validar caja
     const caja = await Caja.findOne({ where: { id: caja_id, estado: "abierta", abierto_por: usuario.id }, transaction: t });
     if (!caja) throw { status: 400, message: "Caja no encontrada o cerrada para este usuario" };
 
-    // Crear egreso
+    // 2️⃣ Validar fondos
+    const totalVentas = (await Venta.sum("total", { where: { caja_id: caja.id, estado: "completada" }, transaction: t })) || 0;
+    const totalEgresos = (await Egreso.sum("monto", { where: { caja_id: caja.id, estado: "activo" }, transaction: t })) || 0;
+    const montoDisponible = parseFloat(caja.monto_inicial) + totalVentas - totalEgresos;
+
+    if (monto_total > montoDisponible) {
+      const faltante = (monto_total - montoDisponible).toFixed(2);
+      throw { status: 400, message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(2)}, faltan $${faltante}` };
+    }
+
+    // 3️⃣ Crear egreso con monto_total indicado
     const egreso = await Egreso.create(
       {
         tipo: "compra_productos",
         descripcion: `Compra a proveedor ${referencia}`,
-        monto: data.monto_total || 0,
+        monto: monto_total,
         referencia: referencia || null,
         usuario_id: usuario.id,
         caja_id: caja.id,
@@ -43,11 +55,11 @@ export async function registrarCompraService(data, usuario) {
       { transaction: t }
     );
 
+    // 4️⃣ Registrar productos, lotes y movimientos de stock
     for (const p of productos) {
       if (!p.nombre || !p.categoria_id || !p.cantidad || p.cantidad <= 0)
         throw { status: 400, message: `Producto inválido` };
 
-      // Buscar o crear producto
       let producto = await Producto.findByPk(p.producto_id, { transaction: t });
       if (!producto) {
         const codigo = p.codigo_barra || `CB-${Date.now()}`;
@@ -65,26 +77,26 @@ export async function registrarCompraService(data, usuario) {
         p.producto_id = producto.id;
       }
 
-      // Registrar lote
+      // Registrar lote (precio_compra opcional)
       await InventarioLote.create(
         {
           producto_id: p.producto_id,
           cantidad: p.cantidad,
           fecha_caducidad: p.fecha_caducidad || null,
-          precio_compra: p.precio_compra || 0,
+          precio_compra: 0, // o null si quieres
           proveedor,
           egreso_id: egreso.id,
         },
         { transaction: t }
       );
 
-      // Registrar movimiento de stock con producto_id y usuario_id
+      // Registrar movimiento de stock
       const stockAnterior = producto.stock;
       const stockNuevo = stockAnterior + p.cantidad;
       await StockMovimiento.create(
         {
-          producto_id: p.producto_id,  // ✅ agregamos producto_id
-          usuario_id: usuario.id,       // ✅ agregamos usuario_id
+          producto_id: p.producto_id,
+          usuario_id: usuario.id,
           tipo_movimiento: "compra",
           cantidad: p.cantidad,
           stock_anterior: stockAnterior,
@@ -108,7 +120,6 @@ export async function registrarCompraService(data, usuario) {
     throw { status: error.status || 500, message: error.message || "Error al registrar la compra" };
   }
 }
-
 
 
 
