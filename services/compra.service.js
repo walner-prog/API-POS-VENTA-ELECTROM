@@ -10,6 +10,7 @@ import {
 } from "../models/index.js";
 import sequelize from "../config/database.js";
 import { agregarStockProducto } from "./producto.service.js";
+import { Op } from "sequelize";
 
  
 export async function registrarCompraService(data, usuario) {
@@ -167,16 +168,46 @@ export async function registrarCompraService(data, usuario) {
 
 // LISTAR COMPRA DE PRODUCTOS
 
+ 
 export async function listarComprasService(query) {
   try {
-    const { proveedor, limite = 10, pagina = 1 } = query;
+    const { proveedor, limite = 10, pagina = 1, fecha, busqueda } = query;
 
-    const where = {};
-    if (proveedor) where.proveedor = proveedor;
+    const where = { tipo: "compra_productos" };
 
-    // ⚡ Usamos findAndCountAll para obtener registros + total en una sola consulta
+    // filtro proveedor exacto
+    if (proveedor) {
+      where.proveedor = { [Op.like]: `%${proveedor}%` };
+    }
+
+    // filtro por fecha única (YYYY-MM-DD)
+    if (fecha) {
+      const inicio = new Date(fecha);
+      inicio.setHours(0, 0, 0, 0);
+      const fin = new Date(fecha);
+      fin.setHours(23, 59, 59, 999);
+      where.created_at = { [Op.between]: [inicio, fin] };
+    }
+
+    // filtro de búsqueda general (referencia, producto, observaciones...)
+    let productoWhere = {};
+    if (busqueda) {
+      // búsqueda en referencia o proveedor
+      where[Op.or] = [
+        { referencia: { [Op.like]: `%${busqueda}%` } },
+        { proveedor: { [Op.like]: `%${busqueda}%` } }
+      ];
+
+      // búsqueda en productos
+      productoWhere = {
+        [Op.or]: [
+          { "$InventarioLotes.Producto.nombre$": { [Op.like]: `%${busqueda}%` } }
+        ]
+      };
+    }
+
     const { rows: compras, count: total } = await Egreso.findAndCountAll({
-      where: { ...where, tipo: "compra_productos" },
+      where: { ...where, ...productoWhere },
       include: [
         {
           model: InventarioLote,
@@ -186,18 +217,17 @@ export async function listarComprasService(query) {
           model: Usuario
         }
       ],
-     order: [["created_at", "DESC"]],
-
+      order: [["created_at", "DESC"]],
       limit: parseInt(limite),
-      offset: (parseInt(pagina) - 1) * parseInt(limite)
+      offset: (parseInt(pagina) - 1) * parseInt(limite),
+      distinct: true // 👈 importante para que el count no se duplique con los includes
     });
 
-    // Formatear respuesta
     return {
-      total,                          // total de compras
-      pagina: parseInt(pagina),       // página actual
-      limite: parseInt(limite),       // límite por página
-      total_paginas: Math.ceil(total / limite), // número total de páginas
+      total,
+      pagina: parseInt(pagina),
+      limite: parseInt(limite),
+      total_paginas: Math.ceil(total / limite),
       data: compras.map(c => ({
         egreso_id: c.id,
         referencia: c.referencia,
@@ -214,7 +244,6 @@ export async function listarComprasService(query) {
           nombre: l.Producto?.nombre || "",
           cantidad: l.cantidad,
           fecha_caducidad: l.fecha_caducidad || "NO se Registro",
-        
         }))
       }))
     };
@@ -223,6 +252,7 @@ export async function listarComprasService(query) {
     throw { status: 500, message: "Error al listar las compras" };
   }
 }
+
 
 
 
