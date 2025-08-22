@@ -181,12 +181,18 @@ export async function listarComprasService(query) {
     }
 
     // Filtro por fecha única en UTC
-    if (fecha) {
-      const [year, month, day] = fecha.split("-").map(Number);
-      const inicio = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-      const fin = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-      where.created_at = { [Op.between]: [inicio, fin] };
-    }
+   // Filtro por fecha única
+if (fecha) {
+  const [year, month, day] = fecha.split("-").map(Number);
+  
+  // Crear un objeto de fecha para el inicio del día en la zona horaria local
+  const inicio = new Date(year, month - 1, day, 0, 0, 0, 0);
+
+  // Crear un objeto de fecha para el final del día en la zona horaria local
+  const fin = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+  where.created_at = { [Op.between]: [inicio, fin] };
+}
 
     // Búsqueda general (referencia, proveedor o productos)
     let productoWhere = {};
