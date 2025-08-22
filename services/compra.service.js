@@ -113,22 +113,16 @@ export async function registrarCompraService(data, usuario) {
       const stockAnterior = producto.stock;
       const stockNuevo = stockAnterior + cantidadTotal;
 
-      await StockMovimiento.create(
-        {
-          producto_id: p.producto_id,
-          usuario_id: usuario.id,
-          tipo_movimiento: "compra",
-          cantidad: cantidadTotal,
-          stock_anterior: stockAnterior,
-          stock_nuevo: stockNuevo,
-          referencia_tipo: "egreso",
-          referencia_id: egreso.id,
-          observaciones: `Compra a proveedor ${proveedor}`,
-        },
-        { transaction: t }
-      );
+     
 
-      await agregarStockProducto(p.producto_id, cantidadTotal, t);
+    await agregarStockProducto(
+  p.producto_id,
+  cantidadTotal,
+  "compra",                         // tipo_movimiento
+  `Compra a proveedor ${proveedor}`, // observaciones
+  t                                  // transacción
+);
+
 
       // Agregar detalle del producto para la respuesta
       const ahorroProducto = p.unidades_gratis
