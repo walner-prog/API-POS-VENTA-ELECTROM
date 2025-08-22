@@ -491,19 +491,26 @@ export const obtenerProductosMenosVendidos = async (limit = 10) => {
 export async function listarMovimientosStock({ page = 1, limit = 10, busqueda = '', tipo_movimiento }) {
   const offset = (page - 1) * limit;
 
-  const where = {};
-  if (tipo_movimiento) where.tipo_movimiento = tipo_movimiento;
+  // Condición principal para StockMovimiento (tipo_movimiento)
+  const whereMovimiento = {};
+  if (tipo_movimiento) {
+    whereMovimiento.tipo_movimiento = tipo_movimiento;
+  }
 
-  // Si se envía un texto de búsqueda, filtramos por nombre de producto
-  const include = [{
-    model: Producto,
-    attributes: ['id', 'nombre'],
-    where: busqueda ? { nombre: { [Op.like]: `%${busqueda}%` } } : undefined
-  }];
+  // Condición para el modelo Producto (búsqueda por nombre)
+  const whereProducto = {};
+  if (busqueda) {
+    whereProducto.nombre = { [Op.like]: `%${busqueda}%` };
+  }
 
   const { count, rows } = await StockMovimiento.findAndCountAll({
-    where,
-    include,
+    where: whereMovimiento,
+    include: [{
+      model: Producto,
+      attributes: ['id', 'nombre'],
+      required: !!busqueda, // Usar 'required' para hacer un INNER JOIN si hay búsqueda
+      where: whereProducto
+    }],
     order: [['created_at', 'DESC']],
     limit,
     offset
