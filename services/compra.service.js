@@ -167,39 +167,37 @@ export async function registrarCompraService(data, usuario) {
 
 
 // LISTAR COMPRA DE PRODUCTOS
-
  
+
 export async function listarComprasService(query) {
   try {
     const { proveedor, limite = 10, pagina = 1, fecha, busqueda } = query;
 
     const where = { tipo: "compra_productos" };
 
-    // filtro proveedor exacto
+    // Filtro proveedor
     if (proveedor) {
       where.proveedor = { [Op.like]: `%${proveedor}%` };
     }
 
-    // filtro por fecha única (YYYY-MM-DD)
+    // Filtro por fecha única en UTC
     if (fecha) {
-      // ⚡ Parseo manual para evitar desface UTC
       const [year, month, day] = fecha.split("-").map(Number);
-      const inicio = new Date(year, month - 1, day, 0, 0, 0, 0);
-      const fin = new Date(year, month - 1, day, 23, 59, 59, 999);
-
+      const inicio = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+      const fin = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
       where.created_at = { [Op.between]: [inicio, fin] };
     }
 
-    // filtro de búsqueda general (referencia, producto, observaciones...)
+    // Búsqueda general (referencia, proveedor o productos)
     let productoWhere = {};
     if (busqueda) {
-      // búsqueda en referencia o proveedor
+      // referencia o proveedor
       where[Op.or] = [
         { referencia: { [Op.like]: `%${busqueda}%` } },
         { proveedor: { [Op.like]: `%${busqueda}%` } }
       ];
 
-      // búsqueda en productos
+      // búsqueda en productos relacionados
       productoWhere = {
         [Op.or]: [
           { "$InventarioLotes.Producto.nombre$": { [Op.like]: `%${busqueda}%` } }
@@ -214,14 +212,12 @@ export async function listarComprasService(query) {
           model: InventarioLote,
           include: [{ model: Producto }]
         },
-        {
-          model: Usuario
-        }
+        { model: Usuario }
       ],
       order: [["created_at", "DESC"]],
       limit: parseInt(limite),
       offset: (parseInt(pagina) - 1) * parseInt(limite),
-      distinct: true // 👈 evita duplicados en el count
+      distinct: true
     });
 
     return {
@@ -253,6 +249,7 @@ export async function listarComprasService(query) {
     throw { status: 500, message: "Error al listar las compras" };
   }
 }
+
 
 
 
