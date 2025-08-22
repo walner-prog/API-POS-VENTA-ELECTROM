@@ -209,5 +209,29 @@ export const getProductosMenosVendidos = async (req, res) => {
   }
 }
 
+ 
+
+export async function listarMovimientosDeStock(req, res) {
+  try {
+    const { page, limit, busqueda, tipo_movimiento } = req.query;
+
+    const data = await productoService.listarMovimientosStock({
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 10,
+      busqueda: busqueda || '',
+      tipo_movimiento: tipo_movimiento || null
+    });
+
+    res.json({
+      success: true,
+      ...data
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error al listar movimientos de stock' });
+  }
+}
+
+
 
 

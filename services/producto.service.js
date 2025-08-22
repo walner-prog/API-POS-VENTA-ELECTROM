@@ -486,6 +486,36 @@ export const obtenerProductosMenosVendidos = async (limit = 10) => {
 }
 
 
+ // obtener todos los productos  que van cambiando su stock
+
+export async function listarMovimientosStock({ page = 1, limit = 10, busqueda = '', tipo_movimiento }) {
+  const offset = (page - 1) * limit;
+
+  const where = {};
+  if (tipo_movimiento) where.tipo_movimiento = tipo_movimiento;
+
+  // Si se envía un texto de búsqueda, filtramos por nombre de producto
+  const include = [{
+    model: Producto,
+    attributes: ['id', 'nombre'],
+    where: busqueda ? { nombre: { [Op.like]: `%${busqueda}%` } } : undefined
+  }];
+
+  const { count, rows } = await StockMovimiento.findAndCountAll({
+    where,
+    include,
+    order: [['created_at', 'DESC']],
+    limit,
+    offset
+  });
+
+  return {
+    movimientos: rows,
+    total: count,
+    pagina: page,
+    totalPaginas: Math.ceil(count / limit)
+  };
+}
 
 
 
