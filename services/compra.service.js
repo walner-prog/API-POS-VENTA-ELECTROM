@@ -182,10 +182,11 @@ export async function listarComprasService(query) {
 
     // filtro por fecha única (YYYY-MM-DD)
     if (fecha) {
-      const inicio = new Date(fecha);
-      inicio.setHours(0, 0, 0, 0);
-      const fin = new Date(fecha);
-      fin.setHours(23, 59, 59, 999);
+      // ⚡ Parseo manual para evitar desface UTC
+      const [year, month, day] = fecha.split("-").map(Number);
+      const inicio = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const fin = new Date(year, month - 1, day, 23, 59, 59, 999);
+
       where.created_at = { [Op.between]: [inicio, fin] };
     }
 
@@ -220,7 +221,7 @@ export async function listarComprasService(query) {
       order: [["created_at", "DESC"]],
       limit: parseInt(limite),
       offset: (parseInt(pagina) - 1) * parseInt(limite),
-      distinct: true // 👈 importante para que el count no se duplique con los includes
+      distinct: true // 👈 evita duplicados en el count
     });
 
     return {
