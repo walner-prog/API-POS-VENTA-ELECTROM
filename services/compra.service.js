@@ -44,8 +44,7 @@ export async function registrarCompraService(data, usuario) {
       };
     }
 
-    // 1️⃣ VALIDACIÓN DE LA CAJA (Ahora se obtiene del backend, no del frontend)
-    // Buscamos la caja abierta del usuario autenticado.
+    // 1️⃣ VALIDACIÓN DE LA CAJA
     const caja = await Caja.findOne({
       where: { estado: "abierta", abierto_por: usuario.id },
       transaction: t,
@@ -53,7 +52,8 @@ export async function registrarCompraService(data, usuario) {
     if (!caja) {
       throw {
         status: 400,
-        message: "No hay una caja abierta para este usuario. Inicie una caja para registrar la compra.",
+        message:
+          "No hay una caja abierta para este usuario. Inicie una caja para registrar la compra.",
       };
     }
 
@@ -96,7 +96,7 @@ export async function registrarCompraService(data, usuario) {
       }
     }
 
-    // 3️⃣ CREAR EGRESO (usando caja.id del backend)
+    // 3️⃣ CREAR EGRESO
     const egreso = await Egreso.create(
       {
         tipo: "compra_productos",
@@ -104,7 +104,7 @@ export async function registrarCompraService(data, usuario) {
         monto: monto_total,
         referencia: referencia || null,
         usuario_id: usuario.id,
-        caja_id: caja.id, // 👈 USAMOS LA ID DE LA CAJA OBTENIDA DEL BACKEND
+        caja_id: caja.id,
         fecha: fecha_compra || new Date(),
         factura_imagen: factura_imagen || null,
         unidades_gratis_total,
@@ -117,22 +117,24 @@ export async function registrarCompraService(data, usuario) {
     const detalleProductos = [];
 
     for (const p of productos) {
-      // Validaciones para cada producto
       if (!p.nombre || !p.categoria_id || !p.cantidad || p.cantidad <= 0) {
         throw { status: 400, message: `Producto inválido` };
       }
 
       let producto = await Producto.findByPk(p.producto_id, { transaction: t });
 
-      // ⚠️ SI EL PRODUCTO NO EXISTE, LO CREAMOS CON LOS CAMPOS REQUERIDOS
       if (!producto) {
-        // Validación para productos nuevos
+        // Producto nuevo
         if (!p.precio_compra || !p.precio_venta) {
-            throw { status: 400, message: "Precio de compra y venta son requeridos para productos nuevos" };
+          throw {
+            status: 400,
+            message:
+              "Precio de compra y venta son requeridos para productos nuevos",
+          };
         }
-        
-        // Calcular la utilidad
-        const utilidad = parseFloat(p.precio_venta) - parseFloat(p.precio_compra);
+
+        const utilidad =
+          parseFloat(p.precio_venta) - parseFloat(p.precio_compra);
 
         const codigo = p.codigo_barra || `CB-${Date.now()}`;
         producto = await Producto.create(
@@ -140,7 +142,6 @@ export async function registrarCompraService(data, usuario) {
             nombre: p.nombre,
             codigo_barra: codigo,
             categoria_id: p.categoria_id,
-            // 👈 AÑADIDOS LOS CAMPOS REQUERIDOS
             precio_compra: p.precio_compra,
             precio_venta: p.precio_venta,
             utilidad: utilidad,
@@ -152,41 +153,50 @@ export async function registrarCompraService(data, usuario) {
         );
         p.producto_id = producto.id;
       } else {
-        // Para productos existentes, si los precios han cambiado, los actualizamos.
-        // Esto previene que una compra con un precio diferente no actualice el producto.
+        // Producto existente → actualizar precios si vienen en la compra
         if (p.precio_compra !== undefined && p.precio_venta !== undefined) {
-             const utilidad = parseFloat(p.precio_venta) - parseFloat(p.precio_compra);
-             await producto.update({
-                precio_compra: p.precio_compra,
-                precio_venta: p.precio_venta,
-                utilidad: utilidad,
-             }, { transaction: t });
+          const utilidad =
+            parseFloat(p.precio_venta) - parseFloat(p.precio_compra);
+          await producto.update(
+            {
+              precio_compra: p.precio_compra,
+              precio_venta: p.precio_venta,
+              utilidad: utilidad,
+            },
+            { transaction: t }
+          );
         }
       }
 
       const cantidadTotal = p.cantidad + (p.unidades_gratis || 0);
+
+      // 👇 Aquí aplicamos la opción 1
+      const precioCompraFinal = p.precio_compra ?? producto.precio_compra;
+      if (!precioCompraFinal) {
+        throw {
+          status: 400,
+          message: `El producto ${p.nombre} no tiene precio de compra definido`,
+        };
+      }
 
       await InventarioLote.create(
         {
           producto_id: p.producto_id,
           cantidad: cantidadTotal,
           fecha_caducidad: p.fecha_caducidad || null,
-          precio_compra: p.precio_compra, // 👈 USAMOS EL PRECIO DE COMPRA INDIVIDUAL
+          precio_compra: precioCompraFinal,
           proveedor,
           egreso_id: egreso.id,
         },
         { transaction: t }
       );
 
-      const stockAnterior = producto.stock;
-      const stockNuevo = stockAnterior + cantidadTotal;
-
       await agregarStockProducto(
         p.producto_id,
         cantidadTotal,
-        "compra", // tipo_movimiento
-        `Compra a proveedor ${proveedor}`, // observaciones
-        t // transacción
+        "compra",
+        `Compra a proveedor ${proveedor}`,
+        t
       );
 
       const ahorroProducto = p.unidades_gratis
@@ -227,6 +237,7 @@ export async function registrarCompraService(data, usuario) {
     };
   }
 }
+
 
 
 // LISTAR COMPRA DE PRODUCTOS
