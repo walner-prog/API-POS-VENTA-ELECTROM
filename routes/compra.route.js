@@ -1,5 +1,5 @@
 import express from 'express';
-import { registrarCompra, listarCompras, obtenerCompraPorId } from '../controllers/compra.controller.js';
+import { registrarCompra, listarCompras, obtenerCompraPorId,eliminarCompra } from '../controllers/compra.controller.js';
 import authMiddleware from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -7,5 +7,6 @@ const router = express.Router();
 router.post('/', authMiddleware, registrarCompra);
 router.get('/', authMiddleware, listarCompras);
 router.get('/:id', authMiddleware, obtenerCompraPorId);
+router.delete('/:id', authMiddleware, eliminarCompra);
 
 export default router;

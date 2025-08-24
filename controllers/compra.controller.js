@@ -1,4 +1,4 @@
-import  { registrarCompraService, listarComprasService, obtenerCompraPorIdService } from '../services/compra.service.js';
+import  { registrarCompraService, listarComprasService, obtenerCompraPorIdService, eliminarCompraService } from '../services/compra.service.js';
 
  
 export async function registrarCompra(req, res) {
@@ -52,6 +52,27 @@ export async function obtenerCompraPorId(req, res) {
   } catch (error) {
     console.error("Error al obtener la compra:", error);
     res.status(error.status || 500).json({ message: error.message || "Error interno del servidor" });
+  }
+}
+
+export async function eliminarCompra(req, res) {
+  const { id } = req.params;
+  const usuario = req.user; // ⚠️ Asumiendo que ya tienes middleware de auth
+
+  if (!id) {
+    return res
+      .status(400)
+      .json({ message: "El ID de la compra es obligatorio" });
+  }
+
+  try {
+    const resultado = await eliminarCompraService(id, usuario);
+    res.status(200).json(resultado); // 👈 devolvemos info útil, no vacío
+  } catch (error) {
+    console.error("Error al eliminar la compra:", error);
+    res
+      .status(error.status || 500)
+      .json({ message: error.message || "Error interno del servidor" });
   }
 }
 

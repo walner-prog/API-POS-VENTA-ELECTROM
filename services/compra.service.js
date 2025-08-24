@@ -8,7 +8,7 @@ import {
   Usuario,
 } from "../models/index.js";
 import sequelize from "../config/database.js";
-import { agregarStockProducto } from "./producto.service.js";
+import { agregarStockProducto, restarStockProducto } from "./producto.service.js";
 import { Op } from "sequelize";
 
 export async function registrarCompraService(data, usuario) {
@@ -365,3 +365,69 @@ export async function obtenerCompraPorIdService(id) {
     throw { status: 500, message: "Error al obtener la compra" };
   }
 }
+
+
+export async function eliminarCompraService(egresoId, usuario) {
+  const t = await sequelize.transaction();
+  try {
+    if (!usuario || !usuario.id) {
+      throw { status: 401, message: "Usuario no autenticado" };
+    }
+
+    // 1️⃣ Buscar el egreso
+    const egreso = await Egreso.findOne({
+      where: { id: egresoId, tipo: "compra_productos", estado: "activo" },
+      transaction: t,
+    });
+
+    if (!egreso) {
+      throw { status: 404, message: "Compra no encontrada o ya anulada" };
+    }
+
+    // 2️⃣ Buscar lotes asociados a esa compra
+    const lotes = await InventarioLote.findAll({
+      where: { egreso_id: egreso.id },
+      transaction: t,
+    });
+
+    // 3️⃣ Revertir stock de cada producto
+    for (const lote of lotes) {
+      const producto = await Producto.findByPk(lote.producto_id, { transaction: t });
+      if (!producto) continue;
+
+      await restarStockProducto(
+        lote.producto_id,
+        lote.cantidad,
+        "anulación_compra",
+        `Anulación de compra #${egreso.id}`,
+        t
+      );
+
+      // Opcional: marcar lote como anulado
+      lote.estado = "anulado";
+      await lote.save({ transaction: t });
+    }
+
+    // 4️⃣ Marcar egreso como anulado
+    egreso.estado = "anulado";
+    egreso.anulado_por = usuario.id;
+    egreso.fecha_anulacion = new Date();
+    await egreso.save({ transaction: t });
+
+    await t.commit();
+
+    return {
+      success: true,
+      message: `Compra #${egreso.id} anulada correctamente`,
+      lotes_afectados: lotes.length,
+    };
+  } catch (error) {
+    if (t) await t.rollback();
+    console.error("Error eliminarCompraService:", error);
+    throw {
+      status: error.status || 500,
+      message: error.message || "Error al eliminar la compra",
+    };
+  }
+}
+

@@ -27,6 +27,10 @@ const InventarioLote = sequelize.define('InventarioLote', {
     type: DataTypes.STRING(100),
     allowNull: true
   },
+  estado: {
+    type: DataTypes.ENUM("activo", "anulado"),
+    defaultValue: "activo"
+  },
   egreso_id: {
     type: DataTypes.INTEGER,
     allowNull: true
