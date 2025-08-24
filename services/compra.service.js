@@ -304,6 +304,7 @@ export async function listarComprasService(query) {
         unidades_gratis_total: c.unidades_gratis_total,
         valor_ahorro_total: c.valor_ahorro_total,
         caja_id: c.caja_id,
+        estado: c.estado,
         usuario: c.Usuario
           ? { id: c.Usuario.id, nombre: c.Usuario.nombre }
           : null,
@@ -312,6 +313,7 @@ export async function listarComprasService(query) {
           nombre: l.Producto?.nombre || "",
           cantidad: l.cantidad,
           fecha_caducidad: l.fecha_caducidad || "NO se Registro",
+          estado: l.estado || "NO se Registro",
         })),
       })),
     };
