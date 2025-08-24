@@ -58,9 +58,8 @@ export async function obtenerCompraPorId(req, res) {
 
 export async function eliminarCompra(req, res) {
   const { id } = req.params;
+ const usuario = req.usuario; // ⚠ coincide con lo que defines en el middleware
 
-  // ⚡ Obtener usuario autenticado desde el middleware
-  const usuario = req.user; 
   if (!usuario || !usuario.id) {
   console.log("usuario recibido:", usuario);
   throw { status: 401, message: "Usuario no autenticado" };
