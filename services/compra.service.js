@@ -24,7 +24,6 @@ export async function registrarCompraService(data, usuario) {
       factura_imagen,
       productos,
       proveedor,
-      monto_total,
     } = data;
 
     // --- Validaciones de datos de entrada ---
@@ -36,12 +35,6 @@ export async function registrarCompraService(data, usuario) {
     }
     if (!proveedor) {
       throw { status: 400, message: "Debe especificar un proveedor" };
-    }
-    if (!monto_total || monto_total <= 0) {
-      throw {
-        status: 400,
-        message: "Debe indicar el monto total de la compra",
-      };
     }
 
     // 1️⃣ VALIDACIÓN DE LA CAJA
@@ -57,7 +50,40 @@ export async function registrarCompraService(data, usuario) {
       };
     }
 
-    // 2️⃣ VALIDACIÓN DE FONDOS
+    // 🔹 Calcular monto_total en base a los productos
+    let monto_total = 0;
+
+    // 2️⃣ VALIDACIÓN DE PRODUCTOS Y CÁLCULO DE TOTAL
+    for (const p of productos) {
+      let producto = await Producto.findByPk(p.producto_id, { transaction: t });
+
+      if (!producto) {
+        // Producto nuevo → requiere precio_compra y precio_venta
+        if (!p.precio_compra || !p.precio_venta) {
+          throw {
+            status: 400,
+            message:
+              "Precio de compra y venta son requeridos para productos nuevos",
+          };
+        }
+      } else {
+        // Producto existente → tomar precio de compra de BD
+        p.precio_compra = producto.precio_compra;
+      }
+
+      if (!p.precio_compra) {
+        throw {
+          status: 400,
+          message: `El producto ${p.nombre} no tiene precio de compra definido`,
+        };
+      }
+
+      const subtotal = parseFloat(p.precio_compra) * parseFloat(p.cantidad);
+      p.precio_total_producto = subtotal;
+      monto_total += subtotal;
+    }
+
+    // 3️⃣ VALIDACIÓN DE FONDOS
     const totalVentas =
       (await Venta.sum("total", {
         where: { caja_id: caja.id, estado: "completada" },
@@ -81,22 +107,20 @@ export async function registrarCompraService(data, usuario) {
       };
     }
 
-    // 2️⃣1️⃣ Calcular unidades gratis y valor de ahorro
+    // 4️⃣ Calcular unidades gratis y valor de ahorro
     let unidades_gratis_total = 0;
     let valor_ahorro_total = 0;
 
     for (const p of productos) {
       if (p.unidades_gratis && p.unidades_gratis > 0) {
         unidades_gratis_total += p.unidades_gratis;
-
-        const precioTotalProducto = p.precio_total_producto || 0;
         const ahorroProducto =
-          (precioTotalProducto / p.cantidad) * p.unidades_gratis;
+          (p.precio_total_producto / p.cantidad) * p.unidades_gratis;
         valor_ahorro_total += ahorroProducto;
       }
     }
 
-    // 3️⃣ CREAR EGRESO
+    // 5️⃣ CREAR EGRESO
     const egreso = await Egreso.create(
       {
         tipo: "compra_productos",
@@ -113,26 +137,14 @@ export async function registrarCompraService(data, usuario) {
       { transaction: t }
     );
 
-    // 4️⃣ REGISTRAR PRODUCTOS, LOTES Y MOVIMIENTOS
+    // 6️⃣ REGISTRAR PRODUCTOS, LOTES Y MOVIMIENTOS
     const detalleProductos = [];
 
     for (const p of productos) {
-      if (!p.nombre || !p.categoria_id || !p.cantidad || p.cantidad <= 0) {
-        throw { status: 400, message: `Producto inválido` };
-      }
-
       let producto = await Producto.findByPk(p.producto_id, { transaction: t });
 
       if (!producto) {
         // Producto nuevo
-        if (!p.precio_compra || !p.precio_venta) {
-          throw {
-            status: 400,
-            message:
-              "Precio de compra y venta son requeridos para productos nuevos",
-          };
-        }
-
         const utilidad =
           parseFloat(p.precio_venta) - parseFloat(p.precio_compra);
 
@@ -152,39 +164,16 @@ export async function registrarCompraService(data, usuario) {
           { transaction: t }
         );
         p.producto_id = producto.id;
-      } else {
-        // Producto existente → actualizar precios si vienen en la compra
-        if (p.precio_compra !== undefined && p.precio_venta !== undefined) {
-          const utilidad =
-            parseFloat(p.precio_venta) - parseFloat(p.precio_compra);
-          await producto.update(
-            {
-              precio_compra: p.precio_compra,
-              precio_venta: p.precio_venta,
-              utilidad: utilidad,
-            },
-            { transaction: t }
-          );
-        }
       }
 
       const cantidadTotal = p.cantidad + (p.unidades_gratis || 0);
-
-      // 👇 Aquí aplicamos la opción 1
-      const precioCompraFinal = p.precio_compra ?? producto.precio_compra;
-      if (!precioCompraFinal) {
-        throw {
-          status: 400,
-          message: `El producto ${p.nombre} no tiene precio de compra definido`,
-        };
-      }
 
       await InventarioLote.create(
         {
           producto_id: p.producto_id,
           cantidad: cantidadTotal,
           fecha_caducidad: p.fecha_caducidad || null,
-          precio_compra: precioCompraFinal,
+          precio_compra: p.precio_compra,
           proveedor,
           egreso_id: egreso.id,
         },
@@ -200,7 +189,7 @@ export async function registrarCompraService(data, usuario) {
       );
 
       const ahorroProducto = p.unidades_gratis
-        ? ((p.precio_total_producto || 0) / p.cantidad) * p.unidades_gratis
+        ? (p.precio_total_producto / p.cantidad) * p.unidades_gratis
         : 0;
 
       detalleProductos.push({
@@ -210,7 +199,7 @@ export async function registrarCompraService(data, usuario) {
         cantidad_comprada: p.cantidad,
         unidades_gratis: p.unidades_gratis || 0,
         cantidad_total: cantidadTotal,
-        precio_total: p.precio_total_producto || 0,
+        precio_total: p.precio_total_producto,
         ahorro: ahorroProducto,
         fecha_caducidad: p.fecha_caducidad || null,
       });
