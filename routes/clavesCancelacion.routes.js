@@ -13,7 +13,7 @@ import isAdmin from '../middlewares/isAdmin.js';          // Verifica si el usua
 const router = express.Router();
 
 // 🔐 Solo admins pueden listar, crear, activar y eliminar claves
-router.get('/', authMiddleware, listarClaves);
+router.get('/', authMiddleware, listarClaves); // el acceso se condiciono con un middleware solo para roles 
 router.post('/', authMiddleware, isAdmin, crearClave);
 router.patch('/:id/activar', authMiddleware, isAdmin, activarClave);
 router.delete('/:id', authMiddleware, isAdmin, eliminarClave);
