@@ -13,9 +13,9 @@ const router = express.Router()
 
 // Solo admin puede gestionar roles
 // Endpoint para listar todos los permisos disponibles
-router.get('/permisos', authMiddleware, isAdmin, listarPermisos)
+router.get('/permisos', isAdmin, listarPermisos)
 
-router.get('/', authMiddleware, isAdmin, listarRoles)
+router.get('/', authMiddleware, listarRoles)
 router.post('/', authMiddleware, isAdmin, crearRol)
 router.put('/:id', authMiddleware, isAdmin, actualizarRol)
 router.delete('/:id', authMiddleware, isAdmin, eliminarRol)
