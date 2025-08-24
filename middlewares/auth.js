@@ -36,6 +36,7 @@ const usuario = await Usuario.findByPk(decoded.id, {
     }
 
     req.usuario = usuario;
+    req.usuario.rol = usuario.Rol?.nombre || 'usuario';
     next();
   } catch (error) {
     return res.status(401).json({ success: false, message: 'Token inválido o expirado' });

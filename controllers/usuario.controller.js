@@ -85,12 +85,14 @@ export const verPerfil = async (req, res) => {
   try {
     const id = req.usuario.id;
     const data = await verPerfilService(id);
-    res.json(data);
+    res.json(data); // ahora incluye rol
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' });
+    res.status(error.status || 500).json({ 
+      success: false, 
+      message: error.message || 'Error interno' 
+    });
   }
-}
-
+};
 
 export const cambiarPassword = async (req, res) => {
   try {

@@ -323,6 +323,7 @@ export async function listarComprasService(query) {
   }
 }
 
+// no se usa todavia en el sistema 
 export async function obtenerCompraPorIdService(id) {
   try {
     const compra = await Egreso.findOne({

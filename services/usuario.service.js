@@ -245,15 +245,29 @@ export async function eliminarUsuarioService(id) {
 
 export async function verPerfilService(id) {
   const usuario = await Usuario.findByPk(id, {
-    attributes: ['id', 'email', 'nombre', 'creado_en']
+    attributes: ['id', 'email', 'nombre', 'creado_en'],
+    include: [
+      {
+        model: Rol,
+        attributes: ['nombre']
+      }
+    ]
   });
+
   if (!usuario) throw {
     status: 404,
     message: 'Perfil no encontrado'
   };
+
   return {
     success: true,
-    usuario
+    usuario: {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      email: usuario.email,
+      creado_en: usuario.creado_en,
+      rol: usuario.Rol?.nombre || 'usuario' // ⚡ Incluimos el rol
+    }
   };
 }
 
