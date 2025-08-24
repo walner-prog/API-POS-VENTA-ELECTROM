@@ -370,7 +370,11 @@ export async function obtenerCompraPorIdService(id) {
 export async function eliminarCompraService(egresoId, usuario) {
   const t = await sequelize.transaction();
   try {
-     
+     if (!usuario || !usuario.id) {
+  console.log("usuario recibido:", usuario);
+  throw { status: 401, message: "Usuario no autenticado" };
+}
+
 
     // 1️⃣ Buscar el egreso
     const egreso = await Egreso.findOne({

@@ -61,6 +61,11 @@ export async function eliminarCompra(req, res) {
 
   // ⚡ Obtener usuario autenticado desde el middleware
   const usuario = req.user; 
+  if (!usuario || !usuario.id) {
+  console.log("usuario recibido:", usuario);
+  throw { status: 401, message: "Usuario no autenticado" };
+}
+
  
 
   if (!id) {
