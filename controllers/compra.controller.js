@@ -55,15 +55,13 @@ export async function obtenerCompraPorId(req, res) {
   }
 }
 
- 
+
 export async function eliminarCompra(req, res) {
   const { id } = req.params;
 
   // ⚡ Obtener usuario autenticado desde el middleware
   const usuario = req.user; 
-  if (!usuario || !usuario.id) {
-    return res.status(401).json({ message: "Usuario no autenticado" });
-  }
+ 
 
   if (!id) {
     return res.status(400).json({ message: "El ID de la compra es obligatorio" });
