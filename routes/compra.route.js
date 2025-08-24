@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/', authMiddleware, registrarCompra);
 router.get('/', authMiddleware, listarCompras);
 router.get('/:id', authMiddleware, obtenerCompraPorId);
-router.patch("/:id/anular",authMiddleware, eliminarCompra);
+router.patch("/:id/anular",authMiddleware, eliminarCompra); // Anular compra
 
 
 export default router;
