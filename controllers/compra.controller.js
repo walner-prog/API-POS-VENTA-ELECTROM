@@ -55,24 +55,30 @@ export async function obtenerCompraPorId(req, res) {
   }
 }
 
+ 
 export async function eliminarCompra(req, res) {
   const { id } = req.params;
-  const usuario = req.user; // ⚠️ Asumiendo que ya tienes middleware de auth
+
+  // ⚡ Obtener usuario autenticado desde el middleware
+  const usuario = req.user; 
+  if (!usuario || !usuario.id) {
+    return res.status(401).json({ message: "Usuario no autenticado" });
+  }
 
   if (!id) {
-    return res
-      .status(400)
-      .json({ message: "El ID de la compra es obligatorio" });
+    return res.status(400).json({ message: "El ID de la compra es obligatorio" });
   }
 
   try {
+    // Llamada al service pasando solo el id del egreso y el usuario
     const resultado = await eliminarCompraService(id, usuario);
-    res.status(200).json(resultado); // 👈 devolvemos info útil, no vacío
+    res.status(200).json(resultado);
   } catch (error) {
     console.error("Error al eliminar la compra:", error);
-    res
-      .status(error.status || 500)
-      .json({ message: error.message || "Error interno del servidor" });
+    res.status(error.status || 500).json({ 
+      message: error.message || "Error interno del servidor" 
+    });
   }
 }
+
 
