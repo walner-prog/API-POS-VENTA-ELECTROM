@@ -2,12 +2,23 @@ import {
   listarCategoriasService,
   crearCategoriaService,
   actualizarCategoriaService,
-  eliminarCategoriaService
+  eliminarCategoriaService,
+  listarCategoriasPorIdProductoService
 } from '../services/categoria.service.js'
 
 export const listarCategorias = async (req, res) => {
   try {
     const categorias = await listarCategoriasService();
+    res.json({ success: true, data: categorias });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+export const listarCategoriasPorIdProducto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const categorias = await listarCategoriasPorIdProductoService(id);
     res.json({ success: true, data: categorias });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

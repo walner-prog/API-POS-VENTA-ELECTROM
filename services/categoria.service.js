@@ -32,6 +32,25 @@ export async function actualizarCategoriaService(id, nombre) {
   }
 }
 
+export async function listarCategoriasPorIdProductoService(id) {
+  try {
+    const categoria = await Categoria.findOne({
+      include: {
+        model: Producto,
+        where: { id },
+      },
+    });
+    if (!categoria) throw { status: 404, message: 'Categoría no encontrada.' };
+
+    return categoria;
+  } catch (error) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      throw { status: 400, message: 'Ya existe una categoría con ese nombre.' };
+    }
+    throw error;
+  }
+}
+
 export async function eliminarCategoriaService(id) {
   const productos = await Producto.count({ where: { categoria_id: id } });
   if (productos > 0) {
