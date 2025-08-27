@@ -3,7 +3,7 @@ import {
   crearCategoriaService,
   actualizarCategoriaService,
   eliminarCategoriaService,
-  listarCategoriasPorIdProductoService
+  listarProductosPorCategoriaService
 } from '../services/categoria.service.js'
 
 export const listarCategorias = async (req, res) => {
