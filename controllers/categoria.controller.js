@@ -15,15 +15,16 @@ export const listarCategorias = async (req, res) => {
   }
 }
 
-export const listarCategoriasPorIdProducto = async (req, res) => {
+export const listarProductosPorCategoria = async (req, res) => {
   try {
-    const { id } = req.params;
-    const categorias = await listarCategoriasPorIdProductoService(id);
-    res.json({ success: true, data: categorias });
+    const { id } = req.params; // El ID en la URL ahora debe ser el de la categoría
+    const categoria = await listarProductosPorCategoriaService(id);
+    res.json({ success: true, data: categoria });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message });
   }
 }
+
 
 export const crearCategoria = async (req, res) => {
   try {
