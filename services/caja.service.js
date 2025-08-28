@@ -372,31 +372,33 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         distinct: true
     });
 
-    const historial = cajas.map(caja => {
-        const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
-        const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-        const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
-        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
+ const historial = cajas.map(caja => {
+    const totalVentas = caja.Ventas?.filter(v => v.estado === 'completada')
+                           .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+    const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
+    const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
+    const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-            console.log("DEBUG - Dinero esperado de ventas:", totalVentas);
-        console.log("DEBUG - Dinero esperado para caja:", dineroEsperado);
+    console.log("DEBUG - Dinero esperado de ventas:", totalVentas);
+    console.log("DEBUG - Dinero esperado para caja:", dineroEsperado);
 
-        return {
-            id: caja.id,
-            monto_inicial: caja.monto_inicial,
-            monto_final: caja.monto_final,
-            hora_apertura: caja.hora_apertura,
-            created_at: caja.created_at,
-            closed_at: caja.closed_at,
-            estado: caja.estado,
-            observacion: caja.observacion,
-            total_ventas: totalVentas,
-            total_egresos: totalEgresos,
-            total_ingresos: totalIngresos,
-            dinero_esperado: dineroEsperado,
-            usuario: caja.Usuario,
-        };
-    });
+    return {
+        id: caja.id,
+        monto_inicial: caja.monto_inicial,
+        monto_final: caja.monto_final,
+        hora_apertura: caja.hora_apertura,
+        created_at: caja.created_at,
+        closed_at: caja.closed_at,
+        estado: caja.estado,
+        observacion: caja.observacion,
+        total_ventas: totalVentas,
+        total_egresos: totalEgresos,
+        total_ingresos: totalIngresos,
+        dinero_esperado: dineroEsperado,
+        usuario: caja.Usuario,
+    };
+});
+
 
     return {
         success: true,
