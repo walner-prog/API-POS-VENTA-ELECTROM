@@ -158,125 +158,104 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
 
 
- 
 export async function listarCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
-    const offset = (pagina - 1) * limite;
+    const offset = (pagina - 1) * limite;
 
-    const hace31Dias = new Date();
-    hace31Dias.setDate(hace31Dias.getDate() - 31);
+    const hace31Dias = new Date();
+    hace31Dias.setDate(hace31Dias.getDate() - 31);
 
-    const where = {
-        usuario_id, // Asegúrate de que este usuario_id no sea undefined/null
-        estado: 'cerrada', // Filtro por estado
-        closed_at: {
-            [Op.gte]: hace31Dias // Filtro por fecha de cierre (últimos 31 días)
-        }
-    };
+    const where = {
+        usuario_id,
+        estado: 'cerrada',
+        closed_at: {
+            [Op.gte]: hace31Dias
+        }
+    };
 
-    // Aplicar filtros opcionales de fecha si se proporcionan desde el frontend
-    if (desde) {
-        where.closed_at[Op.gte] = new Date(desde);
-    }
-    if (hasta) {
-        where.closed_at[Op.lte] = new Date(hasta);
-    }
-    // Si el estadoCaja se pasa, también aplicarlo (aunque ya tienes 'cerrada')
-    // Esto es para flexibilidad si en el futuro quieres listar otros estados
-    if (estadoCaja) {
-        where.estado = estadoCaja;
-    }
+    if (desde) {
+        where.closed_at[Op.gte] = new Date(desde);
+    }
+    if (hasta) {
+        where.closed_at[Op.lte] = new Date(hasta);
+    }
+    if (estadoCaja) {
+        where.estado = estadoCaja;
+    }
 
-    // --- DEBUG: Imprime los filtros que se están aplicando ---
-    console.log("DEBUG - Filtros en listarCierresService:", where);
-    // --- FIN DEBUG ---
+    const { count, rows } = await Caja.findAndCountAll({
+        where,
+        order: [['closed_at', 'DESC']],
+        limit: parseInt(limite),
+        offset: parseInt(offset),
+        distinct: true,
+        subQuery: false, // <-- ¡Importante!
+        include: [
+            {
+                model: Usuario,
+                attributes: ['id', 'nombre']
+            },
+            {
+                model: Venta,
+                required: false,
+                attributes: ['id', 'total', 'estado']
+            },
+            {
+                model: Egreso,
+                required: false,
+                attributes: ['id', 'monto', 'estado']
+            },
+            {
+                model: Ingreso,
+                required: false,
+                attributes: ['id', 'monto', 'estado']
+            }
+        ]
+    });
 
-    const { count, rows } = await Caja.findAndCountAll({
-        where,
-        order: [['closed_at', 'DESC']],
-        limit: parseInt(limite),
-        offset: parseInt(offset),
-        include: [
-            {
-                model: Usuario,
-                attributes: ['id', 'nombre']
-            },
-            {
-                model: Venta,
-                where: { estado: 'completada' },
-                required: false,
-                attributes: ['id', 'total', 'estado']
-            },
-            {
-                model: Egreso,
-                where: { estado: 'activo' },
-                required: false,
-                attributes: ['id', 'monto', 'estado']
-            },
-            { // NUEVO: Incluir el modelo Ingreso para sumar los ingresos
-                model: Ingreso,
-                where: { estado: 'activo' }, // Solo ingresos activos
-                required: false,
-                attributes: ['id', 'monto', 'estado']
-            }
-        ]
-    });
+    // Usa map y reduce para calcular los totales, ahora que los datos están disponibles
+    const historial = rows.map(caja => {
+        const totalVentas = caja.Ventas?.filter(v => v.estado === 'completada')
+                                .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+        const totalEgresos = caja.Egresos?.filter(e => e.estado === 'activo')
+                                .reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
+        const totalIngresos = caja.Ingresos?.filter(i => i.estado === 'activo')
+                                .reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
+        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-    // Mapeo con Promise.all para esperar todos los async
-    const cierres = await Promise.all(rows.map(async caja => {
-        const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
-        const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-        // NUEVO: Sumar los ingresos activos de la caja
-        const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
+        // Ya no necesitas la subconsulta de DetalleVenta aquí, es muy ineficiente
+        // Si necesitas la ganancia, deberías calcularla en el cierre de caja y guardarla
+        const total_precio_compra = 0; // o calcula esto en el momento del cierre
+        const total_precio_venta = totalVentas; // O la suma de los 'total_linea'
+        const ganancia = total_precio_venta - total_precio_compra;
 
-        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos; // Actualizar cálculo
+        return {
+            id: caja.id,
+            monto_inicial: caja.monto_inicial,
+            monto_final: caja.monto_final,
+            hora_apertura: caja.hora_apertura,
+            created_at: caja.created_at,
+            closed_at: caja.closed_at,
+            estado: caja.estado,
+            observacion: caja.observacion,
+            total_ventas: totalVentas,
+            total_egresos: totalEgresos,
+            total_ingresos: totalIngresos,
+            dinero_esperado: dineroEsperado,
+            total_precio_compra,
+            total_precio_venta,
+            ganancia,
+            usuario: caja.Usuario
+        };
+    });
 
-        // Obtener detalles de venta con producto incluido
-        const detalles = await DetalleVenta.findAll({
-            include: [
-                { model: Producto, attributes: ['precio_compra'] },
-                { model: Venta, where: { caja_id: caja.id, estado: 'completada' }, attributes: [] }
-            ],
-            where: { '$Venta.caja_id$': caja.id }, // Asegurar que los detalles son de esta caja
-            transaction: null // No usar transacción aquí si ya hay una global
-        });
-
-        const total_precio_compra = detalles.reduce((acc, d) => {
-            return acc + parseFloat(d.cantidad) * parseFloat(d.Producto.precio_compra);
-        }, 0);
-
-        const total_precio_venta = detalles.reduce((acc, d) => {
-            return acc + parseFloat(d.total_linea);
-        }, 0);
-
-        const ganancia = total_precio_venta - total_precio_compra;
-
-        return {
-            id: caja.id,
-            monto_inicial: caja.monto_inicial,
-            monto_final: caja.monto_final,
-            hora_apertura: caja.hora_apertura, // Asumo que hora_apertura es una columna en Caja
-            created_at: caja.created_at, // Fecha de creación de la caja, que es su apertura
-            closed_at: caja.closed_at, // La fecha de cierre real
-            observacion: caja.observacion,
-            total_ventas: totalVentas,
-            total_egresos: totalEgresos,
-            total_ingresos: totalIngresos, // Incluir en la respuesta
-            dinero_esperado: dineroEsperado,
-            total_precio_compra,
-            total_precio_venta,
-            ganancia,
-            usuario: caja.Usuario // Incluir el objeto de usuario
-        };
-    }));
-
-    return {
-        success: true,
-        historial: cierres, // Cambiado de 'cierres' a 'historial' para coincidir con el frontend
-        total: count, // El conteo total de registros que coinciden con los filtros
-        pagina_actual: parseInt(pagina),
-        total_paginas: Math.ceil(count / limite),
-        message: cierres.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined
-    };
+    return {
+        success: true,
+        historial,
+        total: count,
+        pagina: parseInt(pagina),
+        paginas: Math.ceil(count / limite),
+        message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
+    };
 }
 
 
