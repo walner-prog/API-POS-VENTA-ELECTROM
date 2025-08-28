@@ -338,16 +338,17 @@ export async function historialCierresService(
         limit: parseInt(limite),
         offset: parseInt(offset),
         distinct: true,
+        subQuery: false // Esta es la línea que soluciona el problema
     });
 
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
         const totalVentas = caja.Ventas?.filter(v => v.estado === 'completada')
-                                .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+                               .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
         const totalEgresos = caja.Egresos?.filter(e => e.estado === 'activo')
                                 .reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
         const totalIngresos = caja.Ingresos?.filter(i => i.estado === 'activo')
-                                .reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
+                                 .reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
         const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
         return {
@@ -376,7 +377,6 @@ export async function historialCierresService(
         message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
     };
 }
-
 
 
 export async function verCajaAbiertaService(usuario_id) {
