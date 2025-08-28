@@ -281,124 +281,91 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 
 
 
- 
-export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
+export async function historialCierresService(
+    usuario_id,
+    desde,
+    hasta,
+    pagina = 1,
+    limite = 5,
+    estadoCaja // opcional, si quieres filtrar por cerrado/abierto
+) {
     const offset = (pagina - 1) * limite;
 
-    // --- APLICAMOS LA ZONA HORARIA CORRECTA ---
+    // --- ZONA HORARIA ---
     const hoyNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
     const hace31DiasNicaragua = new Date(hoyNicaragua);
     hace31DiasNicaragua.setDate(hace31DiasNicaragua.getDate() - 31);
     hace31DiasNicaragua.setHours(0, 0, 0, 0);
 
-    // --- VALIDACIÓN DE FECHAS (TUS VALIDACIONES ORIGINALES) ---
+    // --- VALIDACIÓN DE FECHAS ---
     if (desde) {
         const fechaDesde = new Date(desde);
-        if (fechaDesde < hace31DiasNicaragua) {
+        if (fechaDesde < hace31DiasNicaragua)
             throw { status: 400, message: 'La fecha de inicio no puede ser anterior a los últimos 31 días.' };
-        }
-        if (fechaDesde > hoyNicaragua) {
+        if (fechaDesde > hoyNicaragua)
             throw { status: 400, message: 'La fecha de inicio no puede ser una fecha futura.' };
-        }
     }
-
-    
 
     if (desde && hasta) {
         const fechaDesde = new Date(desde);
         const fechaHasta = new Date(hasta);
-        if (fechaDesde > fechaHasta) {
+        if (fechaDesde > fechaHasta)
             throw { status: 400, message: "La fecha 'Desde' no puede ser mayor que la fecha 'Hasta'." };
-        }
     }
 
-    // --- CONSTRUCCIÓN DE FILTROS OPTIMIZADA ---
-    const where = {
-        usuario_id,
-        estado: estadoCaja || 'cerrada',
-    };
+    // --- FILTROS ---
+    const where = { usuario_id };
+    if (estadoCaja) where.estado = estadoCaja;
 
     const fechaFiltro = {};
-    if (desde) {
-        const fechaDesde = new Date(desde);
-        fechaFiltro[Op.gte] = new Date(fechaDesde.getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
-    }
-    if (hasta) {
-        const fechaHasta = new Date(hasta);
-        fechaFiltro[Op.lte] = new Date(fechaHasta.getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
-    }
-
-    if (Object.keys(fechaFiltro).length > 0) {
-        where.closed_at = fechaFiltro;
-    } else {
-        where.closed_at = {
-            [Op.gte]: hace31DiasNicaragua,
-        };
-    }
+    if (desde) fechaFiltro[Op.gte] = new Date(new Date(desde).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
+    if (hasta) fechaFiltro[Op.lte] = new Date(new Date(hasta).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
+    where.closed_at = Object.keys(fechaFiltro).length ? fechaFiltro : { [Op.gte]: hace31DiasNicaragua };
 
     console.log("DEBUG - Filtros en historialCierresService:", where);
 
+    // --- CONSULTA ---
     const { count, rows: cajas } = await Caja.findAndCountAll({
         where,
         order: [['closed_at', 'DESC']],
         attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'observacion', 'estado', 'hora_apertura'],
         include: [
-            {
-                model: Usuario,
-                attributes: ['id', 'nombre'],
-            },
-            {
-                model: Venta,
-                where: { estado: 'completada' },
-                required: false,
-                attributes: ['id', 'total'],
-            },
-            {
-                model: Egreso,
-                where: { estado: 'activo' },
-                required: false,
-                attributes: ['id', 'monto'],
-            },
-            {
-                model: Ingreso,
-                where: { estado: 'activo' },
-                required: false,
-                attributes: ['id', 'monto'],
-            },
+            { model: Usuario, attributes: ['id', 'nombre'] },
+            { model: Venta, required: false, attributes: ['id', 'total', 'estado'] },
+            { model: Egreso, required: false, attributes: ['id', 'monto', 'estado'] },
+            { model: Ingreso, required: false, attributes: ['id', 'monto', 'estado'] },
         ],
         limit: parseInt(limite),
         offset: parseInt(offset),
-        // --- LA CORRECCIÓN FINAL: Solo 'distinct' es necesario ---
-        distinct: true
+        distinct: true,
     });
 
- const historial = cajas.map(caja => {
-    const totalVentas = caja.Ventas?.filter(v => v.estado === 'completada')
-                           .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
-    const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-    const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
-    const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
+    // --- TRANSFORMACIÓN DE DATOS ---
+    const historial = cajas.map(caja => {
+        const totalVentas = caja.Ventas?.filter(v => v.estado === 'completada')
+                                .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+        const totalEgresos = caja.Egresos?.filter(e => e.estado === 'activo')
+                                .reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
+        const totalIngresos = caja.Ingresos?.filter(i => i.estado === 'activo')
+                                .reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
+        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-    console.log("DEBUG - Dinero esperado de ventas: ", totalVentas);
-    console.log("DEBUG - Dinero esperado para caja  es :", dineroEsperado);
-
-    return {
-        id: caja.id,
-        monto_inicial: caja.monto_inicial,
-        monto_final: caja.monto_final,
-        hora_apertura: caja.hora_apertura,
-        created_at: caja.created_at,
-        closed_at: caja.closed_at,
-        estado: caja.estado,
-        observacion: caja.observacion,
-        total_ventas: totalVentas,
-        total_egresos: totalEgresos,
-        total_ingresos: totalIngresos,
-        dinero_esperado: dineroEsperado,
-        usuario: caja.Usuario,
-    };
-});
-
+        return {
+            id: caja.id,
+            monto_inicial: caja.monto_inicial,
+            monto_final: caja.monto_final,
+            hora_apertura: caja.hora_apertura,
+            created_at: caja.created_at,
+            closed_at: caja.closed_at,
+            estado: caja.estado,
+            observacion: caja.observacion,
+            total_ventas: totalVentas,
+            total_egresos: totalEgresos,
+            total_ingresos: totalIngresos,
+            dinero_esperado: dineroEsperado,
+            usuario: caja.Usuario,
+        };
+    });
 
     return {
         success: true,
@@ -409,6 +376,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
     };
 }
+
 
 
 export async function verCajaAbiertaService(usuario_id) {
