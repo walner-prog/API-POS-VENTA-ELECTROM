@@ -8,6 +8,7 @@ import {
 } from '../models/index.js'
 import sequelize from '../config/database.js'
 import { Op,fn, col, literal  } from 'sequelize'
+ 
 
 export async function crearProductoService({
   nombre,
@@ -391,16 +392,16 @@ export async function obtenerProductoPorIdService(id) {
   return producto;
 }
 
-// Obtener productos más vendidos en los últimos 30 días
-export const obtenerProductosMasVendidos = async (page = 1, limit = 10) => {
+
+
+// Obtener productos más vendidos (paginados, últimos 30 días, con búsqueda opcional)
+export const obtenerProductosMasVendidos = async (page = 1, limit = 10, search = '') => {
   try {
-    // Calcular la fecha de hace 30 días
     const fechaLimite = new Date()
     fechaLimite.setDate(fechaLimite.getDate() - 30)
 
     const offset = (page - 1) * limit
 
-    // Consulta con Sequelize
     const productosMasVendidos = await DetalleVenta.findAll({
       attributes: [
         [fn('SUM', col('cantidad')), 'cantidad_vendida'],
@@ -408,16 +409,17 @@ export const obtenerProductosMasVendidos = async (page = 1, limit = 10) => {
       include: [
         {
           model: Producto,
-          attributes: ['nombre', 'stock']
+          attributes: ['nombre', 'stock'],
+          where: search
+            ? { nombre: { [Op.like]: `%${search}%` } }
+            : undefined
         },
         {
           model: Venta,
           attributes: [],
           required: true,
           where: {
-            created_at: {
-              [Op.gte]: fechaLimite
-            }
+            created_at: { [Op.gte]: fechaLimite }
           }
         }
       ],
@@ -430,51 +432,52 @@ export const obtenerProductosMasVendidos = async (page = 1, limit = 10) => {
 
     return productosMasVendidos.map(item => ({
       nombre: item['Producto.nombre'],
-      cantidad_vendida: item.cantidad_vendida,
+      cantidad_vendida: parseInt(item.cantidad_vendida, 10),
       stock_actual: item['Producto.stock'],
     }))
-
   } catch (error) {
     console.error('Error al obtener productos más vendidos:', error)
-    throw new Error('No se pudo generar el reporte de ventas. Por favor, intente de nuevo más tarde.')
+    throw new Error('No se pudo generar el reporte de ventas.')
   }
 }
 
- // Obtener los 10 productos menos vendidos
-
-export const obtenerProductosMenosVendidos = async (limit = 10) => {
+// Obtener productos menos vendidos (paginados, últimos 30 días, con búsqueda opcional)
+export const obtenerProductosMenosVendidos = async (page = 1, limit = 10, search = '') => {
   try {
-    // Fecha límite = últimos 30 días
     const fechaLimite = new Date()
     fechaLimite.setDate(fechaLimite.getDate() - 30)
 
-    const productos = await DetalleVenta.findAll({
+    const offset = (page - 1) * limit
+
+    const productosMenosVendidos = await DetalleVenta.findAll({
       attributes: [
         [fn('SUM', col('cantidad')), 'cantidad_vendida'],
       ],
       include: [
         {
           model: Producto,
-          attributes: ['nombre', 'stock']
+          attributes: ['nombre', 'stock'],
+          where: search
+            ? { nombre: { [Op.like]: `%${search}%` } }
+            : undefined
         },
         {
           model: Venta,
           attributes: [],
           required: true,
           where: {
-            created_at: {
-              [Op.gte]: fechaLimite
-            }
+            created_at: { [Op.gte]: fechaLimite }
           }
         }
       ],
       group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
-      order: [[literal('cantidad_vendida'), 'ASC']], // 👈 menos vendidos primero
+      order: [[literal('cantidad_vendida'), 'ASC']],
       limit,
+      offset,
       raw: true
     })
 
-    return productos.map(item => ({
+    return productosMenosVendidos.map(item => ({
       nombre: item['Producto.nombre'],
       cantidad_vendida: parseInt(item.cantidad_vendida, 10),
       stock_actual: item['Producto.stock'],
@@ -484,6 +487,7 @@ export const obtenerProductosMenosVendidos = async (limit = 10) => {
     throw new Error('No se pudo generar el reporte de productos menos vendidos.')
   }
 }
+
 
 
  // obtener todos los productos  que van cambiando su stock

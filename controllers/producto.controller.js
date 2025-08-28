@@ -166,11 +166,12 @@ export async function obtenerProductos(req, res) {
 
 export const getProductosMasVendidos = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query   // 👈 paginación desde el cliente
+    const { page = 1, limit = 10, search = '' } = req.query  // incluye búsqueda opcional
 
     const productosVendidos = await productoService.obtenerProductosMasVendidos(
       parseInt(page),
-      parseInt(limit)
+      parseInt(limit),
+      search
     )
 
     if (!productosVendidos || productosVendidos.length === 0) {
@@ -182,27 +183,31 @@ export const getProductosMasVendidos = async (req, res) => {
       limit: parseInt(limit),
       data: productosVendidos
     })
-
   } catch (error) {
     console.error('Error en el controlador de productos más vendidos:', error)
     res.status(500).json({ message: 'Error interno del servidor al generar el reporte.' })
   }
 }
 
-
- 
-
-export const getProductosMenosVendidos = async (req, res) => {
+ export const getProductosMenosVendidos = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10
+    const { page = 1, limit = 10, search = '' } = req.query
 
-    const productos = await productoService.obtenerProductosMenosVendidos(limit)
+    const productos = await productoService.obtenerProductosMenosVendidos(
+      parseInt(page),
+      parseInt(limit),
+      search
+    )
 
     if (!productos || productos.length === 0) {
       return res.status(404).json({ message: "No se encontraron ventas en los últimos 30 días." })
     }
 
-    return res.status(200).json(productos)
+    res.status(200).json({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      data: productos
+    })
   } catch (error) {
     console.error('Error en el controlador de productos menos vendidos:', error)
     res.status(500).json({ message: 'Error interno del servidor al generar el reporte.' })
