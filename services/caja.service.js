@@ -322,13 +322,13 @@ export async function historialCierresService(
 
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
-         const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
-        const totalEgresos = caja.Egresos?.filter(e => e.estado === 'activo')
+        const totalVentas = caja.Ventas?.filter(v => v.estado === 'completada')
+                               .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+const totalEgresos = caja.Egresos?.filter(e => e.estado === 'activo')
                                 .reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-        const totalIngresos = caja.Ingresos?.filter(i => i.estado === 'activo')
+const totalIngresos = caja.Ingresos?.filter(i => i.estado === 'activo')
                                  .reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
-        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
-
+const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
         return {
             id: caja.id,
             monto_inicial: caja.monto_inicial,
