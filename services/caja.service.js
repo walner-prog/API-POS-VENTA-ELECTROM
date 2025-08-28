@@ -166,7 +166,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
     const where = {
         usuario_id, // Asegúrate de que este usuario_id no sea undefined/null
-        estado: ['cerrada', 'abierta'], // Filtro por estado
+        estado: 'cerrada', // Filtro por estado
         closed_at: {
             [Op.gte]: hace31Dias // Filtro por fecha de cierre (últimos 31 días)
         }

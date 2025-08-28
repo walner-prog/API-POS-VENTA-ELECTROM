@@ -75,13 +75,13 @@ export const historialCierres = async (req, res) => {
     const usuario_id = req.usuario.id;
     const { desde, hasta, pagina = 1, limite = 5, estadoCaja } = req.query;
 
-    const data = await historialCierresService(usuario_id, { desde, hasta, pagina, limite, estadoCaja });
+    const data = await historialCierresService(usuario_id, desde, hasta, pagina, limite, estadoCaja);
+
     res.json(data);
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' });
   }
 };
-
 
 
 export const listarCierres = async (req, res) => {
