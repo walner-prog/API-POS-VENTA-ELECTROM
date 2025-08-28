@@ -158,7 +158,8 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
 
 
- export async function listarCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
+ 
+export async function listarCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
     const offset = (pagina - 1) * limite;
 
     const hace31Dias = new Date();
@@ -280,7 +281,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
 
 
- // se usa en cajas ipc 
+ 
 export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
     const offset = (pagina - 1) * limite;
 
@@ -335,7 +336,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         };
     }
 
-    
+    console.log("DEBUG - Filtros en historialCierresService:", where);
 
     const { count, rows: cajas } = await Caja.findAndCountAll({
         where,
@@ -380,7 +381,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
         return {
             id: caja.id,
             monto_inicial: caja.monto_inicial,
-            monto_final: caja.monto_final,
+            monto_final: dineroEsperado,
             hora_apertura: caja.hora_apertura,
             created_at: caja.created_at,
             closed_at: caja.closed_at,
