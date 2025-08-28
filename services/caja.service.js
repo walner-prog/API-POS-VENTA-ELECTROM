@@ -322,8 +322,7 @@ export async function historialCierresService(
 
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
-        const totalVentas = caja.Ventas?.filter(v => v.estado === 'completada')
-                               .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+         const totalVentas = caja.Venta?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
         const totalEgresos = caja.Egresos?.filter(e => e.estado === 'activo')
                                 .reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
         const totalIngresos = caja.Ingresos?.filter(i => i.estado === 'activo')
