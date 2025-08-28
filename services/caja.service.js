@@ -379,7 +379,7 @@ export async function historialCierresService(usuario_id, desde, hasta, pagina =
     const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
     const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-    console.log("DEBUG - Dinero esperado de ventas:", totalVentas);
+    console.log("DEBUG - Dinero esperado de ventas: ", totalVentas);
     console.log("DEBUG - Dinero esperado para caja:", dineroEsperado);
 
     return {
