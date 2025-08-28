@@ -158,8 +158,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
 
 
- 
-export async function listarCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
+ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
     const offset = (pagina - 1) * limite;
 
     const hace31Dias = new Date();
@@ -281,129 +280,82 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 
 
 
- 
-export async function historialCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
-    const offset = (pagina - 1) * limite;
+ // se usa en cajas ipc 
+export async function historialCierresService(usuario_id, { desde, hasta, pagina = 1, limite = 5, estadoCaja }) {
+  const offset = (pagina - 1) * limite;
 
-    // --- APLICAMOS LA ZONA HORARIA CORRECTA ---
-    const hoyNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
-    const hace31DiasNicaragua = new Date(hoyNicaragua);
-    hace31DiasNicaragua.setDate(hace31DiasNicaragua.getDate() - 31);
-    hace31DiasNicaragua.setHours(0, 0, 0, 0);
+  // --- Fecha mínima 31 días atrás ---
+  const hoyNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
+  const hace31DiasNicaragua = new Date(hoyNicaragua);
+  hace31DiasNicaragua.setDate(hace31DiasNicaragua.getDate() - 31);
+  hace31DiasNicaragua.setHours(0, 0, 0, 0);
 
-    // --- VALIDACIÓN DE FECHAS (TUS VALIDACIONES ORIGINALES) ---
-    if (desde) {
-        const fechaDesde = new Date(desde);
-        if (fechaDesde < hace31DiasNicaragua) {
-            throw { status: 400, message: 'La fecha de inicio no puede ser anterior a los últimos 31 días.' };
-        }
-        if (fechaDesde > hoyNicaragua) {
-            throw { status: 400, message: 'La fecha de inicio no puede ser una fecha futura.' };
-        }
-    }
+  // --- Validación básica de fechas ---
+  if (desde) {
+    const fechaDesde = new Date(desde);
+    if (fechaDesde < hace31DiasNicaragua) throw { status: 400, message: 'Fecha inicio no puede ser anterior a los últimos 31 días' };
+    if (fechaDesde > hoyNicaragua) throw { status: 400, message: 'Fecha inicio no puede ser futura' };
+  }
+  if (desde && hasta && new Date(desde) > new Date(hasta)) {
+    throw { status: 400, message: "'Desde' no puede ser mayor que 'Hasta'" };
+  }
 
-    
+  // --- Construcción de filtros ---
+  const where = { usuario_id };
+  if (estadoCaja) where.estado = estadoCaja; // puede ser 'cerrada', 'abierta' o undefined para ambos
 
-    if (desde && hasta) {
-        const fechaDesde = new Date(desde);
-        const fechaHasta = new Date(hasta);
-        if (fechaDesde > fechaHasta) {
-            throw { status: 400, message: "La fecha 'Desde' no puede ser mayor que la fecha 'Hasta'." };
-        }
-    }
+  const fechaFiltro = {};
+  if (desde) fechaFiltro[Op.gte] = new Date(new Date(desde).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
+  if (hasta) fechaFiltro[Op.lte] = new Date(new Date(hasta).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
 
-    // --- CONSTRUCCIÓN DE FILTROS OPTIMIZADA ---
-    const where = {
-        usuario_id,
-        estado: estadoCaja || 'cerrada',
-    };
+  where.closed_at = Object.keys(fechaFiltro).length ? fechaFiltro : { [Op.gte]: hace31DiasNicaragua };
 
-    const fechaFiltro = {};
-    if (desde) {
-        const fechaDesde = new Date(desde);
-        fechaFiltro[Op.gte] = new Date(fechaDesde.getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
-    }
-    if (hasta) {
-        const fechaHasta = new Date(hasta);
-        fechaFiltro[Op.lte] = new Date(fechaHasta.getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
-    }
+  // --- Consulta principal ---
+  const { count, rows: cajas } = await Caja.findAndCountAll({
+    where,
+    order: [['closed_at', 'DESC']],
+    attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'observacion', 'estado', 'hora_apertura'],
+    include: [
+      { model: Usuario, attributes: ['id', 'nombre'] },
+      { model: Venta, where: { estado: 'completada' }, required: false, attributes: ['id', 'total'] },
+      { model: Egreso, where: { estado: 'activo' }, required: false, attributes: ['id', 'monto'] },
+      { model: Ingreso, where: { estado: 'activo' }, required: false, attributes: ['id', 'monto'] },
+    ],
+    limit: parseInt(limite),
+    offset: parseInt(offset),
+    distinct: true
+  });
 
-    if (Object.keys(fechaFiltro).length > 0) {
-        where.closed_at = fechaFiltro;
-    } else {
-        where.closed_at = {
-            [Op.gte]: hace31DiasNicaragua,
-        };
-    }
-
-    console.log("DEBUG - Filtros en historialCierresService:", where);
-
-    const { count, rows: cajas } = await Caja.findAndCountAll({
-        where,
-        order: [['closed_at', 'DESC']],
-        attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'observacion', 'estado', 'hora_apertura'],
-        include: [
-            {
-                model: Usuario,
-                attributes: ['id', 'nombre'],
-            },
-            {
-                model: Venta,
-                where: { estado: 'completada' },
-                required: false,
-                attributes: ['id', 'total'],
-            },
-            {
-                model: Egreso,
-                where: { estado: 'activo' },
-                required: false,
-                attributes: ['id', 'monto'],
-            },
-            {
-                model: Ingreso,
-                where: { estado: 'activo' },
-                required: false,
-                attributes: ['id', 'monto'],
-            },
-        ],
-        limit: parseInt(limite),
-        offset: parseInt(offset),
-        // --- LA CORRECCIÓN FINAL: Solo 'distinct' es necesario ---
-        distinct: true
-    });
-
-    const historial = cajas.map(caja => {
-        const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
-        const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-        const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
-        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
-
-        return {
-            id: caja.id,
-            monto_inicial: caja.monto_inicial,
-            monto_final: caja.monto_final,
-            hora_apertura: caja.hora_apertura,
-            created_at: caja.created_at,
-            closed_at: caja.closed_at,
-            estado: caja.estado,
-            observacion: caja.observacion,
-            total_ventas: totalVentas,
-            total_egresos: totalEgresos,
-            total_ingresos: totalIngresos,
-            dinero_esperado: dineroEsperado,
-            usuario: caja.Usuario,
-        };
-    });
-
+  const historial = cajas.map(caja => {
+    const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+    const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
+    const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
     return {
-        success: true,
-        historial,
-        total: count,
-        pagina: parseInt(pagina),
-        paginas: Math.ceil(count / limite),
-        message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
+      id: caja.id,
+      monto_inicial: caja.monto_inicial,
+      monto_final: caja.monto_final,
+      hora_apertura: caja.hora_apertura,
+      closed_at: caja.closed_at,
+      estado: caja.estado,
+      observacion: caja.observacion,
+      total_ventas: totalVentas,
+      total_egresos: totalEgresos,
+      total_ingresos: totalIngresos,
+      dinero_esperado: parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos,
+      usuario: caja.Usuario,
     };
+  });
+
+  return {
+    success: true,
+    historial,
+    total: count,
+    pagina: parseInt(pagina),
+    paginas: Math.ceil(count / limite),
+    message: historial.length === 0 ? 'No hay registros en los últimos 31 días' : undefined
+  };
 }
+
 
 
 export async function verCajaAbiertaService(usuario_id) {

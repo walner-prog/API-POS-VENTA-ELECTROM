@@ -489,8 +489,7 @@ export const obtenerProductosMenosVendidos = async (page = 1, limit = 10, search
 }
 
 
-
- // obtener todos los productos  que van cambiando su stock
+// obtener todos los productos  que van cambiando su stock
 
 export async function listarMovimientosStock({ page = 1, limit = 10, busqueda = '', tipo_movimiento }) {
   const offset = (page - 1) * limit;
