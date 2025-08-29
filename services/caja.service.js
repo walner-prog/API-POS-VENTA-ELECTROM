@@ -335,6 +335,8 @@ export async function historialCierresService(
         subQuery: false
     });
 
+    console.log("Cajas encontradas:", cajas.length);
+
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
         // La suma ahora es directa porque el filtro ya se aplicó en la consulta
@@ -361,6 +363,8 @@ export async function historialCierresService(
         };
     });
 
+    console.log("Historial procesado:", historial.length);
+
     return {
         success: true,
         historial,
@@ -369,6 +373,8 @@ export async function historialCierresService(
         paginas: Math.ceil(count / limite),
         message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
     };
+
+    
 }
 
 export async function verCajaAbiertaService(usuario_id) {
