@@ -259,6 +259,8 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 }
 
 
+ 
+
 export async function historialCierresService(
     usuario_id,
     desde,
@@ -300,16 +302,8 @@ export async function historialCierresService(
     if (hasta) fechaFiltro[Op.lte] = new Date(new Date(hasta).getTime() - NICARAGUA_OFFSET_MINUTES * 60000);
     where.closed_at = Object.keys(fechaFiltro).length ? fechaFiltro : { [Op.gte]: hace31DiasNicaragua };
 
-    console.log("DEBUG - Filtros en historialCierresService:", where);
-
-    // --- CONSULTA 1: Obtener el conteo total de cajas que coinciden con el filtro ---
-    const count = await Caja.count({
-        where,
-        // No se necesita el 'include' para el conteo, solo los filtros de la caja
-    });
-    
-    // --- CONSULTA 2: Obtener los datos de las cajas con sus relaciones para la página actual ---
-    const cajas = await Caja.findAll({
+    // --- CONSULTA OPTIMIZADA ---
+    const { count, rows: cajas } = await Caja.findAndCountAll({
         where,
         order: [['closed_at', 'DESC']],
         attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'observacion', 'estado', 'hora_apertura'],
@@ -318,49 +312,37 @@ export async function historialCierresService(
             {
                 model: Venta,
                 required: false,
-                attributes: ['id', 'total', 'estado']
+                attributes: ['id', 'total', 'estado'],
+                // Filtra las ventas, pero no hace que la caja se pierda si no tiene ventas completadas
+                where: { estado: 'completada' } 
             },
             {
                 model: Egreso,
                 required: false,
-                attributes: ['id', 'monto', 'estado']
+                attributes: ['id', 'monto', 'estado'],
+                where: { estado: 'activo' } 
             },
             {
                 model: Ingreso,
                 required: false,
-                attributes: ['id', 'monto', 'estado']
+                attributes: ['id', 'monto', 'estado'],
+                where: { estado: 'activo' } 
             },
         ],
         limit: parseInt(limite),
-        offset: parseInt(offset)
-        // Eliminamos 'distinct' y 'subQuery'
+        offset: parseInt(offset),
+        distinct: true,
+        subQuery: false
     });
-
-    console.log(JSON.stringify(cajas, null, 2))
 
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
-        // Filtrar y sumar en el código de la aplicación
-        const totalVentas =
-            caja.Ventas?.filter((v) => v.estado === "completada").reduce(
-                (acc, v) => acc + parseFloat(v.total),
-                0
-            ) || 0;
-        const totalEgresos =
-            caja.Egresos?.filter((e) => e.estado === "activo").reduce(
-                (acc, e) => acc + parseFloat(e.monto),
-                0
-            ) || 0;
-        const totalIngresos =
-            caja.Ingresos?.filter((i) => i.estado === "activo").reduce(
-                (acc, i) => acc + parseFloat(i.monto),
-                0
-            ) || 0;
-        const dineroEsperado =
-            parseFloat(caja.monto_inicial) +
-            totalVentas +
-            totalIngresos -
-            totalEgresos;
+        // La suma ahora es directa porque el filtro ya se aplicó en la consulta
+        const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+        const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
+        const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
+
+        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
         return {
             id: caja.id,
