@@ -335,7 +335,9 @@ export async function historialCierresService(
         subQuery: false
     });
 
-    console.log("Cajas encontradas:", cajas.length);
+    
+    console.log("DEBUG Caja", JSON.stringify(cajas, null, 2));
+
 
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
@@ -363,8 +365,9 @@ export async function historialCierresService(
         };
     });
 
-    console.log("Historial procesado:", historial.length);
-
+   
+        console.log("DEBUG Caja", JSON.stringify(historial, null, 2));
+       console.log("DEBUG Ventas", JSON.stringify(historial.map(h => h.total_ventas), null, 2));
     return {
         success: true,
         historial,
@@ -374,7 +377,7 @@ export async function historialCierresService(
         message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
     };
 
-    
+
 }
 
 export async function verCajaAbiertaService(usuario_id) {
