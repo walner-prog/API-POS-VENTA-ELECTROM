@@ -83,7 +83,11 @@ export async function cerrarCajaService(caja_id, usuario_id) {
     const t = await sequelize.transaction();
 
     try {
-        const caja = await Caja.findOne({ where: { id: caja_id, usuario_id, estado: 'abierta' }, transaction: t });
+        const caja = await Caja.findOne({ 
+            where: { id: caja_id, usuario_id, estado: 'abierta' }, 
+            include: [{ model: Usuario, attributes: ['nombre'] }],
+            transaction: t 
+        });
         if (!caja) throw { status: 404, message: 'Caja no encontrada o ya cerrada' };
 
         const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' }, transaction: t });
@@ -113,18 +117,15 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
         const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-        // **CORRECCIÓN CLAVE**
-        // 1. Usar new Date() para guardar la hora exacta del servidor.
         const fechaDeCierre = new Date();
 
         caja.monto_final = dineroFinal;
         caja.estado = 'cerrada';
-        caja.closed_at = fechaDeCierre; // Guardamos la hora del sistema.
+        caja.closed_at = fechaDeCierre;
 
         await caja.save({ transaction: t });
         await t.commit();
 
-        // 2. Formatear la fecha para la respuesta usando el objeto de fecha guardado.
         const fechaFormateada = fechaDeCierre.toLocaleString('es-NI', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -135,6 +136,8 @@ export async function cerrarCajaService(caja_id, usuario_id) {
             success: true,
             message: 'Caja cerrada correctamente.',
             cierre: {
+                id: caja.id, // ✅ Added caja_id
+                usuario_nombre: caja.Usuario.nombre, // ✅ Added user name
                 monto_inicial: caja.monto_inicial,
                 total_ventas: totalVentas,
                 total_egresos: totalEgresos,
@@ -145,7 +148,6 @@ export async function cerrarCajaService(caja_id, usuario_id) {
                 cantidad_tickets: ventas.length,
                 dinero_final: dineroFinal,
                 hora_apertura: caja.hora_apertura,
-                created_at: caja.created_at,
                 hora_cierre: fechaFormateada,
                 usuario_id
             }
@@ -155,7 +157,6 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         throw error;
     }
 }
-
 
 
 export async function listarCierresService(usuario_id, desde, hasta, pagina = 1, limite = 5, estadoCaja) {
@@ -336,7 +337,7 @@ export async function historialCierresService(
     });
 
     
-    console.log("DEBUG Caja", JSON.stringify(cajas, null, 2));
+   // console.log("DEBUG Caja", JSON.stringify(cajas, null, 2));
 
 
     // --- TRANSFORMACIÓN DE DATOS ---
@@ -366,8 +367,8 @@ export async function historialCierresService(
     });
 
    
-        console.log("DEBUG Caja", JSON.stringify(historial, null, 2));
-       console.log("DEBUG Ventas", JSON.stringify(historial.map(h => h.total_ventas), null, 2));
+        //console.log("DEBUG Caja", JSON.stringify(historial, null, 2));
+    //   console.log("DEBUG Ventas", JSON.stringify(historial.map(h => h.total_ventas), null, 2));
     return {
         success: true,
         historial,
