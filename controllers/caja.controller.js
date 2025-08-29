@@ -73,15 +73,24 @@ export const verCajaAbierta = async (req, res) => {
 export const historialCierres = async (req, res) => {
   try {
     const usuario_id = req.usuario.id;
-    const { desde, hasta, pagina = 1, limite = 5, estadoCaja } = req.query;
+    const { dia, pagina = 1, limite = 5, estadoCaja } = req.query;
 
-    const data = await historialCierresService(usuario_id, desde, hasta, pagina, limite, estadoCaja);
+    const data = await historialCierresService(
+      usuario_id,
+      dia,
+      pagina,
+      limite,
+      estadoCaja
+    );
 
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Error interno' });
+    res
+      .status(error.status || 500)
+      .json({ success: false, message: error.message || "Error interno" });
   }
 };
+
 
 
 export const listarCierres = async (req, res) => {
