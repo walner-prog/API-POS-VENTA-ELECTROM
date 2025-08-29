@@ -182,7 +182,6 @@ export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, lim
 };
  
 
-
 export const anularEgresoService = async (egreso_id, usuario_id) => {
   const egreso = await Egreso.findOne({
     where: { id: egreso_id, estado: 'activo' },
@@ -193,10 +192,15 @@ export const anularEgresoService = async (egreso_id, usuario_id) => {
     throw { status: 404, message: 'Egreso no encontrado o ya anulado' };
   }
 
+  // ❌ Verificamos el tipo de egreso
+  if (egreso.tipo === 'compra_productos') {
+    throw { status: 400, message: 'No se puede anular un egreso de tipo compra de productos desde aquí' };
+  }
+
   const caja = egreso.Caja;
   if (!caja) throw { status: 404, message: 'Caja asociada no encontrada' };
 
-  // Ya no devolvemos dinero a la caja, solo marcamos como anulado
+  // Marcamos como anulado
   egreso.estado = 'anulado';
   egreso.anulado_por = usuario_id;
   egreso.anulado_en = new Date();

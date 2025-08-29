@@ -194,7 +194,6 @@ export async function actualizarUsuarioService(id, {
 }
 
 
-
 export async function eliminarUsuarioService(id) {
   const usuario = await Usuario.findByPk(id, {
     include: {
