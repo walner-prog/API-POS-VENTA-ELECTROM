@@ -259,7 +259,6 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 }
 
 
-
 export async function historialCierresService(
     usuario_id,
     desde,
@@ -303,8 +302,14 @@ export async function historialCierresService(
 
     console.log("DEBUG - Filtros en historialCierresService:", where);
 
-    // --- CONSULTA ---
-    const { count, rows: cajas } = await Caja.findAndCountAll({
+    // --- CONSULTA 1: Obtener el conteo total de cajas que coinciden con el filtro ---
+    const count = await Caja.count({
+        where,
+        // No se necesita el 'include' para el conteo, solo los filtros de la caja
+    });
+    
+    // --- CONSULTA 2: Obtener los datos de las cajas con sus relaciones para la página actual ---
+    const cajas = await Caja.findAll({
         where,
         order: [['closed_at', 'DESC']],
         attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'observacion', 'estado', 'hora_apertura'],
@@ -327,9 +332,8 @@ export async function historialCierresService(
             },
         ],
         limit: parseInt(limite),
-        offset: parseInt(offset),
-        distinct: true,
-        subQuery: false
+        offset: parseInt(offset)
+        // Eliminamos 'distinct' y 'subQuery'
     });
 
     // --- TRANSFORMACIÓN DE DATOS ---
