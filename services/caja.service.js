@@ -123,7 +123,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
         caja.monto_final = dineroFinal;
         caja.estado = 'cerrada';
-        caja.closed_at = fechaDeCierre;
+        caja.closed_at = hora_cierre_string;
 
         await caja.save({ transaction: t });
         await t.commit();
