@@ -49,7 +49,7 @@ export const validarRestarStock = (req, res, next) => {
       'number.integer': 'La cantidad debe ser un número entero',
       'number.positive': 'La cantidad debe ser mayor a cero'
     }),
-    tipo_movimiento: Joi.string().valid('compra','venta','ajuste','devolucion','otro','Dañado','Perdido').required().messages({
+    tipo_movimiento: Joi.string().valid('compra','venta','ajuste','devolucion','otro','dañado','perdido','anulacion_compra').required().messages({
       'any.required': 'El tipo_movimiento es requerido',
       'any.only': 'El tipo_movimiento no es válido'
     }),
