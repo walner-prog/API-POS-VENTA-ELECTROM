@@ -310,25 +310,40 @@ export async function historialCierresService(
         attributes: ['id', 'monto_inicial', 'monto_final', 'closed_at', 'observacion', 'estado', 'hora_apertura'],
         include: [
             { model: Usuario, attributes: ['id', 'nombre'] },
-            { model: Venta, required: false, attributes: ['id', 'total', 'estado'] },
-            { model: Egreso, required: false, attributes: ['id', 'monto', 'estado'] },
-            { model: Ingreso, required: false, attributes: ['id', 'monto', 'estado'] },
+            {
+                model: Venta,
+                required: false,
+                attributes: ['id', 'total', 'estado'],
+                where: { estado: 'completada' } // ✅ Aplica el filtro aquí
+            },
+            {
+                model: Egreso,
+                required: false,
+                attributes: ['id', 'monto', 'estado'],
+                where: { estado: 'activo' } // ✅ Aplica el filtro aquí
+            },
+            {
+                model: Ingreso,
+                required: false,
+                attributes: ['id', 'monto', 'estado'],
+                where: { estado: 'activo' } // ✅ Aplica el filtro aquí
+            },
         ],
         limit: parseInt(limite),
         offset: parseInt(offset),
         distinct: true,
-        subQuery: false // Esta es la línea que soluciona el problema
+        subQuery: false
     });
 
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
-        const totalVentas = caja.Ventas?.filter(v => v.estado === 'completada')
-                               .reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
-const totalEgresos = caja.Egresos?.filter(e => e.estado === 'activo')
-                                .reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-const totalIngresos = caja.Ingresos?.filter(i => i.estado === 'activo')
-                                 .reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
-const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
+        // La suma ahora es directa porque el filtro ya se aplicó en la consulta
+        const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
+        const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
+        const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
+
+        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
+
         return {
             id: caja.id,
             monto_inicial: caja.monto_inicial,
@@ -355,7 +370,6 @@ const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngre
         message: historial.length === 0 ? 'No hay cierres registrados en los últimos 31 días' : undefined,
     };
 }
-
 
 export async function verCajaAbiertaService(usuario_id) {
   const caja = await Caja.findOne({
