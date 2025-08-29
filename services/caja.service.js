@@ -117,7 +117,9 @@ export async function cerrarCajaService(caja_id, usuario_id) {
 
         const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-        const fechaDeCierre = new Date();
+       // const fechaDeCierre = new Date();
+        const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
+        const hora_cierre_string = nowNicaragua.toTimeString().split(' ')[0];
 
         caja.monto_final = dineroFinal;
         caja.estado = 'cerrada';
@@ -126,11 +128,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         await caja.save({ transaction: t });
         await t.commit();
 
-        const fechaFormateada = fechaDeCierre.toLocaleString('es-NI', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: true
-        });
+        
 
         return {
             success: true,
@@ -148,7 +146,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
                 cantidad_tickets: ventas.length,
                 dinero_final: dineroFinal,
                 hora_apertura: caja.hora_apertura,
-                hora_cierre: fechaFormateada,
+                hora_cierre: hora_cierre_string,
                 usuario_id
             }
         };
