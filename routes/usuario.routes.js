@@ -28,7 +28,7 @@ router.get('/perfil', authMiddleware, verPerfil)
 
 
 // Solo admin
-router.post('/registro-admin', authMiddleware, isAdmin, tienePermiso('crear_usuarios'), crearUsuarioDesdeAdmin)
+router.post('/registro-admin', authMiddleware, isAdmin,   crearUsuarioDesdeAdmin)
 router.post('/cambiar-password', authMiddleware, cambiarPassword)
 router.get('/', authMiddleware, isAdmin, listarUsuarios)
 router.put('/:id', authMiddleware, isAdmin, actualizarUsuario)
