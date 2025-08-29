@@ -78,6 +78,7 @@ export async function abrirCajaService({ monto_inicial, observacion, nombre }, u
 }
 
 
+ 
 
 export async function cerrarCajaService(caja_id, usuario_id) {
     const t = await sequelize.transaction();
@@ -90,52 +91,44 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         });
         if (!caja) throw { status: 404, message: 'Caja no encontrada o ya cerrada' };
 
+        // ... (Tu lógica para calcular ventas, egresos, etc., está bien aquí)
         const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' }, transaction: t });
         const totalVentas = ventas.reduce((acc, venta) => acc + parseFloat(venta.total), 0);
-
-        const totalEgresos = await Egreso.sum('monto', {
-            where: { caja_id: caja.id, estado: 'activo' },
-            transaction: t
-        }) || 0;
-
-        const totalIngresos = await Ingreso.sum('monto', {
-            where: { caja_id: caja.id, estado: 'activo' },
-            transaction: t
-        }) || 0;
-
+        const totalEgresos = await Egreso.sum('monto', { where: { caja_id: caja.id, estado: 'activo' }, transaction: t }) || 0;
+        const totalIngresos = await Ingreso.sum('monto', { where: { caja_id: caja.id, estado: 'activo' }, transaction: t }) || 0;
+        
         const detalles = await DetalleVenta.findAll({
-            include: [
-                { model: Producto, attributes: ['precio_compra'] },
-                { model: Venta, where: { caja_id: caja.id, estado: 'completada' }, attributes: [] }
-            ],
+            include: [{ model: Producto, attributes: ['precio_compra'] }, { model: Venta, where: { caja_id: caja.id, estado: 'completada' }, attributes: [] }],
             transaction: t
         });
-
         const total_precio_compra = detalles.reduce((acc, d) => acc + parseFloat(d.cantidad) * parseFloat(d.Producto.precio_compra), 0);
         const total_precio_venta = detalles.reduce((acc, d) => acc + parseFloat(d.total_linea), 0);
         const ganancia = total_precio_venta - total_precio_compra;
-
         const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-       // const fechaDeCierre = new Date();
-        const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
-        const hora_cierre_string = nowNicaragua.toTimeString().split(' ')[0];
+        // ✅ CORRECCIÓN CLAVE: Usa el objeto Date completo de tu función
+        const fechaDeCierre = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
 
         caja.monto_final = dineroFinal;
         caja.estado = 'cerrada';
-        caja.closed_at = hora_cierre_string;
+        caja.closed_at = fechaDeCierre; // Guarda el objeto Date completo en la base de datos
 
         await caja.save({ transaction: t });
         await t.commit();
 
-        
+        // ✅ Para la respuesta, formatea ese mismo objeto Date a un string legible
+        const fechaFormateada = fechaDeCierre.toLocaleString('es-NI', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: true
+        });
 
         return {
             success: true,
             message: 'Caja cerrada correctamente.',
             cierre: {
-                id: caja.id, // ✅ Added caja_id
-                usuario_nombre: caja.Usuario.nombre, // ✅ Added user name
+                id: caja.id,
+                usuario_nombre: caja.Usuario.nombre,
                 monto_inicial: caja.monto_inicial,
                 total_ventas: totalVentas,
                 total_egresos: totalEgresos,
@@ -146,7 +139,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
                 cantidad_tickets: ventas.length,
                 dinero_final: dineroFinal,
                 hora_apertura: caja.hora_apertura,
-                hora_cierre: hora_cierre_string,
+                hora_cierre: fechaFormateada, // Envía la cadena formateada al front-end
                 usuario_id
             }
         };
