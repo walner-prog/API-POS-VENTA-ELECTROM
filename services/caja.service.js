@@ -312,7 +312,7 @@ export async function historialCierresService(
             { model: Usuario, attributes: ['id', 'nombre'] },
             {
                 model: Venta,
-                required: false,
+                required: true,
                 attributes: ['id', 'total', 'estado'],
                 where: { estado: 'completada' } // ✅ Aplica el filtro aquí
             },
