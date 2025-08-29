@@ -336,6 +336,8 @@ export async function historialCierresService(
         // Eliminamos 'distinct' y 'subQuery'
     });
 
+    console.log(JSON.stringify(cajas, null, 2))
+
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
         // Filtrar y sumar en el código de la aplicación
