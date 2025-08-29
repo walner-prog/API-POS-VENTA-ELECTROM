@@ -312,21 +312,18 @@ export async function historialCierresService(
             { model: Usuario, attributes: ['id', 'nombre'] },
             {
                 model: Venta,
-                required: true,
-                attributes: ['id', 'total', 'estado'],
-                where: { estado: 'completada' } // ✅ Aplica el filtro aquí
+                required: false,
+                attributes: ['id', 'total', 'estado']
             },
             {
                 model: Egreso,
                 required: false,
-                attributes: ['id', 'monto', 'estado'],
-                where: { estado: 'activo' } // ✅ Aplica el filtro aquí
+                attributes: ['id', 'monto', 'estado']
             },
             {
                 model: Ingreso,
                 required: false,
-                attributes: ['id', 'monto', 'estado'],
-                where: { estado: 'activo' } // ✅ Aplica el filtro aquí
+                attributes: ['id', 'monto', 'estado']
             },
         ],
         limit: parseInt(limite),
@@ -337,12 +334,27 @@ export async function historialCierresService(
 
     // --- TRANSFORMACIÓN DE DATOS ---
     const historial = cajas.map(caja => {
-        // La suma ahora es directa porque el filtro ya se aplicó en la consulta
-        const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
-        const totalEgresos = caja.Egresos?.reduce((acc, e) => acc + parseFloat(e.monto), 0) || 0;
-        const totalIngresos = caja.Ingresos?.reduce((acc, i) => acc + parseFloat(i.monto), 0) || 0;
-
-        const dineroEsperado = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
+        // Filtrar y sumar en el código de la aplicación
+        const totalVentas =
+            caja.Ventas?.filter((v) => v.estado === "completada").reduce(
+                (acc, v) => acc + parseFloat(v.total),
+                0
+            ) || 0;
+        const totalEgresos =
+            caja.Egresos?.filter((e) => e.estado === "activo").reduce(
+                (acc, e) => acc + parseFloat(e.monto),
+                0
+            ) || 0;
+        const totalIngresos =
+            caja.Ingresos?.filter((i) => i.estado === "activo").reduce(
+                (acc, i) => acc + parseFloat(i.monto),
+                0
+            ) || 0;
+        const dineroEsperado =
+            parseFloat(caja.monto_inicial) +
+            totalVentas +
+            totalIngresos -
+            totalEgresos;
 
         return {
             id: caja.id,
