@@ -80,6 +80,10 @@ export async function abrirCajaService({ monto_inicial, observacion, nombre }, u
 
  
 
+ 
+// Define el offset de Nicaragua (UTC-6)
+const NICARAGUA_OFFSET_MINUTES = -360; 
+
 export async function cerrarCajaService(caja_id, usuario_id) {
     const t = await sequelize.transaction();
 
@@ -91,7 +95,6 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         });
         if (!caja) throw { status: 404, message: 'Caja no encontrada o ya cerrada' };
 
-        // ... (Tu lógica para calcular ventas, egresos, etc., está bien aquí)
         const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' }, transaction: t });
         const totalVentas = ventas.reduce((acc, venta) => acc + parseFloat(venta.total), 0);
         const totalEgresos = await Egreso.sum('monto', { where: { caja_id: caja.id, estado: 'activo' }, transaction: t }) || 0;
@@ -106,18 +109,22 @@ export async function cerrarCajaService(caja_id, usuario_id) {
         const ganancia = total_precio_venta - total_precio_compra;
         const dineroFinal = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
 
-        // ✅ CORRECCIÓN CLAVE: Usa el objeto Date completo de tu función
-        const fechaDeCierre = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
-
+        // ✅ CORRECCIÓN CLAVE
+        // 1. Obtén la fecha UTC del servidor
+        const utcDate = new Date(); 
+        
         caja.monto_final = dineroFinal;
         caja.estado = 'cerrada';
-        caja.closed_at = fechaDeCierre; // Guarda el objeto Date completo en la base de datos
+        caja.closed_at = utcDate; // Guarda el objeto Date UTC en la base de datos
 
         await caja.save({ transaction: t });
         await t.commit();
 
-        // ✅ Para la respuesta, formatea ese mismo objeto Date a un string legible
-        const fechaFormateada = fechaDeCierre.toLocaleString('es-NI', {
+        // 2. Para la respuesta, usa tu función para obtener la fecha local de Nicaragua
+        const fechaNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
+
+        // 3. Y formatea esa fecha local para el front-end
+        const fechaFormateada = fechaNicaragua.toLocaleString('es-NI', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', second: '2-digit',
             hour12: true
@@ -139,7 +146,7 @@ export async function cerrarCajaService(caja_id, usuario_id) {
                 cantidad_tickets: ventas.length,
                 dinero_final: dineroFinal,
                 hora_apertura: caja.hora_apertura,
-                hora_cierre: fechaFormateada, // Envía la cadena formateada al front-end
+                hora_cierre: fechaFormateada, // Envía la cadena formateada de Nicaragua al front-end
                 usuario_id
             }
         };
@@ -328,10 +335,9 @@ export async function historialCierresService(
     });
 
     
-   // console.log("DEBUG Caja", JSON.stringify(cajas, null, 2));
+ 
 
-
-    // --- TRANSFORMACIÓN DE DATOS ---
+ 
     const historial = cajas.map(caja => {
         // La suma ahora es directa porque el filtro ya se aplicó en la consulta
         const totalVentas = caja.Ventas?.reduce((acc, v) => acc + parseFloat(v.total), 0) || 0;
@@ -358,8 +364,7 @@ export async function historialCierresService(
     });
 
    
-        //console.log("DEBUG Caja", JSON.stringify(historial, null, 2));
-    //   console.log("DEBUG Ventas", JSON.stringify(historial.map(h => h.total_ventas), null, 2));
+ 
     return {
         success: true,
         historial,
