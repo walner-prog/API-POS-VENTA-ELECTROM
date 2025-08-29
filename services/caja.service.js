@@ -81,8 +81,7 @@ export async function abrirCajaService({ monto_inicial, observacion, nombre }, u
  
 
  
-// Define el offset de Nicaragua (UTC-6)
-const NICARAGUA_OFFSET_MINUTES = -360; 
+ 
 
 export async function cerrarCajaService(caja_id, usuario_id) {
     const t = await sequelize.transaction();
