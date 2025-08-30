@@ -1,6 +1,6 @@
 import { Egreso, Caja,Venta,Usuario, Ingreso } from '../models/index.js'
 import { Op } from 'sequelize'
- 
+ import sequelize from "../config/database.js";
 
 export const crearEgresoService = async (datos, usuario_id) => {
     const caja = await Caja.findOne({
