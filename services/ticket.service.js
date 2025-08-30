@@ -93,7 +93,7 @@ export async function listarTicketsPorCajaService(caja_id) {
     };
 }
 
-// Esta función lista los tickets de hoy para una caja específica
+ 
 //  ESTA FUNCION NO SE USA EN NINGUN LADO, PERO SE DEJA POR SI SE NECESITA EN EL FUTURO
 export async function listarTicketsDeHoyPorCajaService(caja_id) {
     // Obtenemos el rango de fechas de hoy en Nicaragua

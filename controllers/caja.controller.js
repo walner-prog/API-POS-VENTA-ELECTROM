@@ -5,7 +5,8 @@ import {
   cajaActualService,
   verCajaAbiertaService,
   historialCierresService,
-  listarCajasParaSelectorService
+  listarCajasParaSelectorService,
+  agregarMontoInicialCajaService
  
 } from '../services/caja.service.js'
  
@@ -124,6 +125,28 @@ export const obtenerCajasUltimos31Dias = async (req, res) => {
     res.status(error.status || 500).json({
       success: false,
       message: error.message || 'Error al obtener cajas de los últimos 31 días'
+    });
+  }
+};
+
+ 
+
+export const agregarMontoInicialCajaController = async (req, res) => {
+  try {
+    const { usuario_id, monto } = req.body;
+
+    if (!usuario_id || monto === undefined) {
+      return res.status(400).json({ success: false, message: "Faltan datos requeridos." });
+    }
+
+    const result = await agregarMontoInicialCajaService(usuario_id, monto);
+
+    return res.json(result);
+  } catch (error) {
+    console.error("Error al actualizar monto inicial:", error);
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.message || "Error al actualizar el monto inicial."
     });
   }
 };

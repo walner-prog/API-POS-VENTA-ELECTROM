@@ -535,5 +535,33 @@ export const listarCajasParaSelectorService = async () => {
   };
 };
 
+// Esta función permite agregar dinero al monto inicial a la caja abierta de un usuario
+ 
+export async function agregarMontoInicialCajaService(usuario_id, montoAgregar) {
+  const caja = await Caja.findOne({
+    where: { usuario_id, estado: 'abierta' }
+  });
+
+  if (!caja) {
+    throw { status: 404, message: 'No hay caja abierta para este usuario.' };
+  }
+
+  if (isNaN(montoAgregar) || montoAgregar <= 0) {
+    throw { status: 400, message: 'Monto a agregar inválido.' };
+  }
+
+  caja.monto_inicial = parseFloat(caja.monto_inicial) + parseFloat(montoAgregar);
+  await caja.save();
+
+  return {
+    success: true,
+    message: `Monto inicial actualizado. Nuevo monto: ${caja.monto_inicial}`,
+    caja_id: caja.id,
+    monto_inicial: caja.monto_inicial
+  };
+}
+
+
+
 
 
