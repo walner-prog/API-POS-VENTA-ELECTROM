@@ -183,28 +183,48 @@ export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, lim
  
 
 export const anularEgresoService = async (egreso_id, usuario_id) => {
-  const egreso = await Egreso.findOne({
-    where: { id: egreso_id, estado: 'activo' },
-    include: [Caja]
-  });
+    // Start a transaction for a more robust operation
+    const t = await sequelize.transaction();
 
-  if (!egreso) {
-    throw { status: 404, message: 'Egreso no encontrado o ya anulado' };
-  }
+    try {
+        const egreso = await Egreso.findOne({
+            where: { id: egreso_id, estado: 'activo' },
+            include: [{ model: Caja, attributes: ['estado'] }], // Request only the 'estado' of the Caja
+            transaction: t
+        });
 
-  // ❌ Verificamos el tipo de egreso
-  if (egreso.tipo === 'compra_productos') {
-    throw { status: 400, message: 'No se puede anular un egreso de tipo compra de productos desde aquí' };
-  }
+        if (!egreso) {
+            throw { status: 404, message: 'Egreso no encontrado o ya anulado' };
+        }
 
-  const caja = egreso.Caja;
-  if (!caja) throw { status: 404, message: 'Caja asociada no encontrada' };
+        // ❌ You can remove this check if the 'compra_productos' type is handled elsewhere
+        if (egreso.tipo === 'compra_productos') {
+            throw { status: 400, message: 'No se puede anular un egreso de tipo compra de productos desde aquí' };
+        }
 
-  // Marcamos como anulado
-  egreso.estado = 'anulado';
-  egreso.anulado_por = usuario_id;
-  egreso.anulado_en = new Date();
-  await egreso.save();
+        const caja = egreso.Caja;
+        if (!caja) {
+            throw { status: 404, message: 'Caja asociada no encontrada' };
+        }
 
-  return { success: true, message: 'Egreso anulado correctamente' };
+        // ✅ KEY ADDITION: Check if the cash register is open
+        if (caja.estado !== 'abierta') {
+            throw { status: 400, message: 'No se puede anular un egreso en esta caja # ' + caja.id + ' porque está cerrada.' };
+        }
+
+        // Mark as voided
+        egreso.estado = 'anulado';
+        egreso.anulado_por = usuario_id;
+        egreso.anulado_en = new Date();
+        await egreso.save({ transaction: t });
+
+        // Commit the transaction if everything is successful
+        await t.commit();
+
+        return { success: true, message: 'Egreso anulado correctamente' };
+    } catch (error) {
+        // Rollback the transaction in case of any error
+        if (t) await t.rollback();
+        throw error;
+    }
 };

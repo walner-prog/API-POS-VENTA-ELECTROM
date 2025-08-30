@@ -47,14 +47,47 @@ export async function listarIngresosPorCajaService(caja_id, query) {
 
 
 export async function anularIngresoService(id, anulado_por) {
-  const ingreso = await Ingreso.findByPk(id);
-  if (!ingreso) throw new Error('Ingreso no encontrado');
-  if (ingreso.estado === 'anulado') throw new Error('Ya está anulado');
+    // Start a transaction to ensure atomicity (all or nothing)
+    const t = await sequelize.transaction();
 
-  ingreso.estado = 'anulado';
-  ingreso.anulado_por = anulado_por;
-  ingreso.anulado_en = new Date();
-  await ingreso.save();
+    try {
+        const ingreso = await Ingreso.findOne({
+            where: { id: id },
+            include: [{ model: Caja, attributes: ['estado'] }], // Fetch the related Caja's status
+            transaction: t
+        });
 
-  return ingreso;
+        if (!ingreso) {
+            throw { status: 404, message: 'Ingreso no encontrado.' };
+        }
+        if (ingreso.estado === 'anulado') {
+            throw { status: 400, message: 'El ingreso ya ha sido anulado.' };
+        }
+
+        // ✅ KEY ADDITION: Check if the associated cash register is open.
+        const caja = ingreso.Caja;
+        if (!caja) {
+            throw { status: 404, message: 'Caja asociada no encontrada.' };
+        }
+        if (caja.estado !== 'abierta') {
+            throw { status: 400, message: 'No se puede anular un ingreso de la caja # ' + caja.id + ' que ya está cerrada.' };
+        }
+
+        // Update the ingreso record
+        ingreso.estado = 'anulado';
+        ingreso.anulado_por = anulado_por;
+        ingreso.anulado_en = new Date();
+        await ingreso.save({ transaction: t });
+
+        // Commit the transaction
+        await t.commit();
+
+        return { success: true, message: 'Ingreso anulado correctamente.' };
+
+    } catch (error) {
+        // If an error occurs, roll back the transaction
+        await t.rollback();
+        // Re-throw the error so it can be handled by the caller
+        throw error;
+    }
 }
