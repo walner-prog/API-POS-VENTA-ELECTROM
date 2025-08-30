@@ -1,5 +1,5 @@
 import sequelize from "../../config/database.js";
-import { Venta, Ticket } from "../../models/index.js";
+import { Venta, Ticket, Caja } from "../../models/index.js";
 import { reversarStock } from "./utils/reversarStock.js";
 
 export async function cancelarVentaService(venta_id, motivo, usuario_id) {
