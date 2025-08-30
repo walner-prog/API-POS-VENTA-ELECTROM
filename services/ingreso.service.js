@@ -71,7 +71,7 @@ export async function anularIngresoService(id, anulado_por) {
             throw { status: 404, message: 'Caja asociada no encontrada.' };
         }
         if (caja.estado !== 'abierta') {
-            throw { status: 400, message: 'No se puede anular un ingreso de la caja # ' + caja.id + ' que ya está cerrada.' };
+            throw { status: 400, message: 'No se puede anular un ingreso de la caja  que ya está cerrada.' };
         }
 
         // Update the ingreso record

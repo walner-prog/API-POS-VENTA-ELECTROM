@@ -209,7 +209,7 @@ export const anularEgresoService = async (egreso_id, usuario_id) => {
 
         // ✅ KEY ADDITION: Check if the cash register is open
         if (caja.estado !== 'abierta') {
-            throw { status: 400, message: 'No se puede anular un egreso en esta caja # ' + caja.id + ' porque está cerrada.' };
+            throw { status: 400, message: 'No se puede anular un egreso en esta caja  porque está cerrada.' };
         }
 
         // Mark as voided
