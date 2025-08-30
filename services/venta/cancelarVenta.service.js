@@ -5,7 +5,11 @@ import { reversarStock } from "./utils/reversarStock.js";
 export async function cancelarVentaService(venta_id, motivo, usuario_id) {
   const t = await sequelize.transaction();
   try {
-    const venta = await Venta.findByPk(venta_id, { transaction: t });
+    const venta = await Venta.findByPk(venta_id, {
+      include: [Caja], // Incluimos la caja asociada
+      transaction: t
+    });
+
     if (!venta || venta.estado !== "completada") {
       throw {
         status: 404,
@@ -13,13 +17,22 @@ export async function cancelarVentaService(venta_id, motivo, usuario_id) {
       };
     }
 
-    // ✅ Centralizá reversión dentro de la misma transacción
+    // ❌ Verificar estado de la caja
+    if (!venta.Caja || venta.Caja.estado !== "abierta") {
+      throw {
+        status: 400,
+        message: "No se puede cancelar la venta: la caja no está abierta.",
+      };
+    }
+
+    // Reversión de stock
     await reversarStock(venta_id, t);
 
     const ticket = await Ticket.findOne({
       where: { venta_id },
       transaction: t,
     });
+
     if (ticket) {
       ticket.estado = "anulado";
       await ticket.save({ transaction: t });
@@ -43,4 +56,5 @@ export async function cancelarVentaService(venta_id, motivo, usuario_id) {
     throw error;
   }
 }
+
 
