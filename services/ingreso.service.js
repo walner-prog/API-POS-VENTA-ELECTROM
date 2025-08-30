@@ -1,4 +1,5 @@
 import { Caja, Usuario,Ingreso } from '../models/index.js'
+import sequelize from "../config/database.js";
  
 async function validarCajaAbierta(usuario_id) {
   const caja = await Caja.findOne({ where: { usuario_id, estado: 'abierta' } });
