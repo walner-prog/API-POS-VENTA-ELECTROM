@@ -10,6 +10,9 @@ import {
 import sequelize from "../config/database.js";
 import { agregarStockProducto, restarStockProducto } from "./producto.service.js";
 import { Op } from "sequelize";
+import { uploadToMega } from "./mega.service.js";
+import os from "os"; 
+import fs from "fs/promises";
 
 export async function registrarCompraService(data, usuario) {
   const t = await sequelize.transaction();
@@ -120,6 +123,21 @@ export async function registrarCompraService(data, usuario) {
       }
     }
 
+
+    let factura_imagen_url = null;
+
+if (data.factura_imagen) {
+  // data.factura_imagen vendrá del frontend como objeto { name, buffer }
+  const tmpPath = path.join(os.tmpdir(), data.factura_imagen.name);
+  await fs.writeFile(tmpPath, Buffer.from(data.factura_imagen.buffer));
+
+  factura_imagen_url = await uploadToMega(tmpPath);
+
+  // borrar archivo temporal
+  await fs.unlink(tmpPath);
+}
+
+
     // 5️⃣ CREAR EGRESO
     const egreso = await Egreso.create(
       {
@@ -130,7 +148,7 @@ export async function registrarCompraService(data, usuario) {
         usuario_id: usuario.id,
         caja_id: caja.id,
         fecha: fecha_compra || new Date(),
-        factura_imagen: factura_imagen || null,
+         factura_imagen: factura_imagen_url || null,
         unidades_gratis_total,
         valor_ahorro_total,
       },
