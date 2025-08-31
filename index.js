@@ -19,26 +19,25 @@ import {
   clavesCancelacionRoutes,
   ingresoRoutes,
   compraRoutes
+
 } from './routes/index.js'
 import './models/index.js'
 
 const app = express()
 app.use(cors())
+app.use(bodyParser.json())
 
-// Solo para rutas JSON puro
-app.use('/api/usuarios', bodyParser.json(), usuarioRoutes)
-app.use('/api/roles', bodyParser.json(), rolRoutes)
-app.use('/api/cajas', bodyParser.json(), CajaRoutes)
-app.use('/api/ventas', bodyParser.json(), ventaRoutes)
-app.use('/api/categorias', bodyParser.json(), categoriaRoutes)
-app.use('/api/tickets', bodyParser.json(), ticketRoutes)
-app.use('/api/egresos', bodyParser.json(), egresoRoutes)
-app.use('/api/productos', bodyParser.json(), productoRoutes)
-app.use('/api/reportes', bodyParser.json(), reportesRoutes)
-app.use('/api/claves-cancelacion', bodyParser.json(), clavesCancelacionRoutes)
-app.use('/api/ingresos', bodyParser.json(), ingresoRoutes)
-
-// **Compras con Multer** (archivos grandes)
+app.use('/api/usuarios', usuarioRoutes)
+app.use('/api/roles', rolRoutes)
+app.use('/api/cajas', CajaRoutes)
+app.use('/api/ventas', ventaRoutes)
+app.use('/api/categorias', categoriaRoutes)
+app.use('/api/tickets', ticketRoutes)
+app.use('/api/egresos', egresoRoutes)
+app.use('/api/productos', productoRoutes)
+app.use('/api/reportes', reportesRoutes)
+app.use('/api/claves-cancelacion', clavesCancelacionRoutes)
+app.use('/api/ingresos', ingresoRoutes)
 app.use('/api/compras', compraRoutes)
 
 app.get('/', (req, res) => res.send('API POS funcionando 🚀'))
