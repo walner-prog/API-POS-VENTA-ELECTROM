@@ -1,15 +1,27 @@
 import  { registrarCompraService, listarComprasService, obtenerCompraPorIdService, eliminarCompraService } from '../services/compra.service.js';
 
  
+ 
+
 export async function registrarCompra(req, res) {
   try {
-     
-    const compra = await registrarCompraService(req.body, req.usuario);
+    // req.file contendrá el archivo subido (si existe)
+    const factura_imagen = req.file
+      ? { name: req.file.originalname, buffer: req.file.buffer }
+      : null;
+
+    const compra = await registrarCompraService(
+      { ...req.body, factura_imagen },
+      req.usuario
+    );
+
     res.status(201).json(compra);
   } catch (error) {
+    console.error("Error registrarCompra:", error);
     res.status(error.status || 500).json({ message: error.message });
   }
 }
+
 
 
 export async function listarCompras(req, res) {
