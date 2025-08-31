@@ -1,7 +1,10 @@
 // backend/services/mega.service.js
-import { Mega } from "megajs";
-import fs from "fs";
-import path from "path";
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const Mega = require('megajs'); // ahora funciona con ESM
+
+import fs from 'fs';
+import path from 'path';
 
 // Credenciales Mega
 const email = "carlosmega085@gmail.com";
@@ -19,7 +22,7 @@ export async function uploadToMega(filePath) {
     console.log("Sesión en Mega iniciada correctamente.");
 
     const fileName = path.basename(filePath);
-    const stats = fs.statSync(filePath); // tamaño del archivo
+    const stats = fs.statSync(filePath);
     const fileStream = fs.createReadStream(filePath);
 
     const file = await storage
