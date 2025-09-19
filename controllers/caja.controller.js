@@ -6,8 +6,8 @@ import {
   verCajaAbiertaService,
   historialCierresService,
   listarCajasParaSelectorService,
-  agregarMontoInicialCajaService
- 
+  agregarMontoInicialCajaService,
+  getAllCajasGlobal
 } from '../services/caja.service.js'
  
  
@@ -150,3 +150,17 @@ export const agregarMontoInicialCajaController = async (req, res) => {
     });
   }
 };
+
+
+
+
+export const listarCajasAdministracion = async (req, res) => {
+  try {
+    const cajas = await getAllCajasGlobal();
+    res.json(cajas);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error al obtener las cajas', error });
+  }
+};
+

@@ -5,70 +5,59 @@ import { getCurrentTimeInTimezone, NICARAGUA_OFFSET_MINUTES }  from "../utils/da
 
  
 
-export async function abrirCajaService({ monto_inicial, observacion, nombre }, usuario_id_cajero) {
+export async function abrirCajaService({ monto_inicial, observacion }, usuario_id_cajero) {
     const t = await sequelize.transaction();
     try {
-        if (monto_inicial <= 0) {
-            throw { status: 400, message: 'El monto inicial debe ser mayor a 0.' };
-        }
-        if (monto_inicial == null) {
-            throw { status: 400, message: 'Debe indicar un monto inicial para abrir la caja.' };
+        if (monto_inicial == null || monto_inicial <= 0 || isNaN(Number(monto_inicial))) {
+            throw { status: 400, message: 'El monto inicial debe ser un número mayor a 0.' };
         }
         monto_inicial = Number(monto_inicial);
-        if (isNaN(monto_inicial)) {
-            throw { status: 400, message: "El monto inicial es obligatorio y debe ser un número válido" };
-        }
 
         const cajeroUser = await Usuario.findByPk(usuario_id_cajero, { transaction: t });
         if (!cajeroUser) {
-            throw {
-                status: 404,
-                message: 'No se encontró el usuario especificado. Verifique el usuario antes de abrir la caja.'
-            };
+            throw { status: 404, message: 'Usuario no encontrado.' };
         }
 
         const cajaAbierta = await Caja.findOne({
             where: { usuario_id: usuario_id_cajero, estado: 'abierta' },
             transaction: t
         });
-
         if (cajaAbierta) {
-            throw {
-                status: 400,
-                message: `El usuario ${cajeroUser.nombre} ya tiene una caja abierta. Cierre la caja actual antes de abrir una nueva.`
-            };
+            throw { status: 400, message: `El usuario ${cajeroUser.nombre} ya tiene una caja abierta.` };
         }
 
-        // --- APLICACIÓN DE LA ZONA HORARIA ---
         const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
-        const hora_apertura_string = nowNicaragua.toTimeString().split(' ')[0]; // Para almacenar como string de hora local
+        const hora_apertura_string = nowNicaragua.toTimeString().split(' ')[0];
 
-        const caja = await Caja.create({
-            nombre,
+        // --- Crear caja inicialmente sin nombre ---
+        let caja = await Caja.create({
+            nombre: '', // temporal
             monto_inicial,
             observacion,
             usuario_id: usuario_id_cajero,
             abierto_por: usuario_id_cajero,
-            hora_apertura: hora_apertura_string // Almacena la hora local de Nicaragua como string
+            hora_apertura: hora_apertura_string
         }, { transaction: t });
+
+        // --- Actualizar el nombre usando el id ---
+        caja.nombre = `Caja#${caja.id}`;
+        await caja.save({ transaction: t });
 
         await t.commit();
 
-        // Formatea la fecha para el mensaje de respuesta usando la hora de Nicaragua
         const fechaFormateada = nowNicaragua.toLocaleString('es-NI', {
             day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-            hour12: true
+            hour: '2-digit', minute: '2-digit', hour12: true
         });
 
         return {
             success: true,
-            message: `La caja "${caja.nombre}" se abrió correctamente para el usuario ${cajeroUser.nombre} con un monto inicial de ${parseFloat(caja.monto_inicial).toFixed(2)}. Hora de apertura: ${fechaFormateada}.`,
+            message: `La caja "${caja.nombre}" se abrió correctamente para ${cajeroUser.nombre} con monto inicial C$${caja.monto_inicial.toFixed(2)}. Hora de apertura: ${fechaFormateada}.`,
             caja: {
                 id: caja.id,
                 nombre: caja.nombre,
-                monto_inicial: parseFloat(caja.monto_inicial).toFixed(2),
-                hora_apertura: fechaFormateada // Retorna la hora formateada de Nicaragua
+                monto_inicial: caja.monto_inicial.toFixed(2),
+                hora_apertura: fechaFormateada
             }
         };
     } catch (error) {
@@ -76,6 +65,7 @@ export async function abrirCajaService({ monto_inicial, observacion, nombre }, u
         throw error;
     }
 }
+
 
 
  
@@ -258,12 +248,12 @@ export async function listarCierresService(usuario_id, desde, hasta, pagina = 1,
 
 
  
-
+// se usa para las cajas en seccion de cjas 
 export async function historialCierresService(
     usuario_id,
     dia,            // solo 1 fecha específica
     pagina = 1,
-    limite = 5,
+    limite = 50,
     estadoCaja // opcional
 ) {
     const offset = (pagina - 1) * limite;
@@ -562,6 +552,44 @@ export async function agregarMontoInicialCajaService(usuario_id, montoAgregar) {
 }
 
 
+// Esta función obtiene todas las cajas con sus totales calculados 
+
+ 
+
+export const getAllCajasGlobal = async () => {
+  const cajas = await Caja.findAll({
+    order: [['created_at', 'DESC']]
+  });
+
+  const resultados = [];
+
+  for (const caja of cajas) {
+    // Traer movimientos relacionados con esta caja
+    const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' } });
+    const egresos = await Egreso.findAll({ where: { caja_id: caja.id, estado: 'activo' } });
+    const ingresos = await Ingreso.findAll({ where: { caja_id: caja.id, estado: 'activo' } });
+
+    const totalVentas = ventas.reduce((sum, v) => sum + parseFloat(v.total), 0);
+    const totalEgresos = egresos.reduce((sum, e) => sum + parseFloat(e.monto), 0);
+    const totalIngresos = ingresos.reduce((sum, i) => sum + parseFloat(i.monto), 0);
+
+    resultados.push({
+      id: caja.id,
+      nombre: caja.nombre,
+      estado: caja.estado,
+      monto_inicial: parseFloat(caja.monto_inicial),
+      monto_final: parseFloat(caja.monto_final || 0),
+      hora_apertura: caja.hora_apertura,
+      closed_at: caja.closed_at,
+      totalVentas,
+      totalEgresos,
+      totalIngresos,
+      saldoActual: parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos
+    });
+  }
+
+  return resultados;
+};
 
 
 
