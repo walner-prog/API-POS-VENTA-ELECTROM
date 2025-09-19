@@ -555,9 +555,14 @@ export async function agregarMontoInicialCajaService(usuario_id, montoAgregar) {
 // Esta función obtiene todas las cajas con sus totales calculados 
 
  
-
 export const getAllCajasGlobal = async () => {
   const cajas = await Caja.findAll({
+    include: [
+      {
+        model: Usuario,
+        attributes: ['id', 'nombre'] // Solo traemos lo necesario
+      }
+    ],
     order: [['created_at', 'DESC']]
   });
 
@@ -584,12 +589,14 @@ export const getAllCajasGlobal = async () => {
       totalVentas,
       totalEgresos,
       totalIngresos,
-      saldoActual: parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos
+      saldoActual: parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos,
+      usuario: caja.Usuario ? { id: caja.Usuario.id, nombre: caja.Usuario.nombre } : null
     });
   }
 
   return resultados;
 };
+
 
 
 
