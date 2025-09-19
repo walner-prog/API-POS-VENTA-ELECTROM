@@ -22,10 +22,11 @@ const Producto = sequelize.define('Producto', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
-  utilidad: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false
-  },
+ utilidad: {
+  type: DataTypes.DECIMAL(10, 2), // ✅ hasta 99,999,999.99
+  allowNull: false
+},
+
   stock: {
     type: DataTypes.INTEGER,
     defaultValue: 0

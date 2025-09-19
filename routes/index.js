@@ -10,6 +10,9 @@ import reportesRoutes from './reportes.routes.js';
 import clavesCancelacionRoutes from './clavesCancelacion.routes.js';
 import ingresoRoutes from './ingreso.routes.js'
 import compraRoutes from './compra.route.js'
+import kpisRoutes from "./kpis.routes.js";
+ 
+
 
 export {
   usuarioRoutes,
@@ -23,6 +26,6 @@ export {
   reportesRoutes,
   clavesCancelacionRoutes,
   ingresoRoutes,
-  compraRoutes
-
-}
+  compraRoutes,
+  kpisRoutes
+};

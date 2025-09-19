@@ -1,0 +1,46 @@
+// services/kpis.service.js
+import { Venta, Egreso } from "../models/index.js";
+import { Op } from "sequelize";
+import { subDays, subMonths, startOfDay } from "date-fns";
+
+async function getKpis() {
+  const hoy = new Date();
+
+  // Rango de fechas
+  const rangos = {
+    "7dias": subDays(hoy, 7),
+    "1mes": subMonths(hoy, 1),
+    "3meses": subMonths(hoy, 3),
+    "6meses": subMonths(hoy, 6),
+    "1anio": subMonths(hoy, 12)
+  };
+
+  const resultados = {};
+
+  for (const [key, fecha] of Object.entries(rangos)) {
+    // 🔹 Ingresos (Ventas)
+    const ventas = await Venta.sum("total", {
+      where: {
+        created_at: { [Op.gte]: startOfDay(fecha) },
+        estado: "completada"
+      }
+    });
+
+    // 🔹 Egresos
+    const egresos = await Egreso.sum("monto", {
+      where: {
+        created_at: { [Op.gte]: startOfDay(fecha) },
+        estado: "activo"
+      }
+    });
+
+    resultados[key] = {
+      ingresos: ventas || 0,
+      egresos: egresos || 0
+    };
+  }
+
+  return resultados;
+}
+
+export default { getKpis };
