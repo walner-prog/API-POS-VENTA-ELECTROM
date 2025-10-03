@@ -8,7 +8,7 @@ import {
 } from '../models/index.js'
 import sequelize from '../config/database.js'
 import { Op,fn, col, literal  } from 'sequelize'
- 
+import bwipjs from 'bwip-js' // Para generar códigos de barras
 
 export async function crearProductoService({
   nombre,
@@ -95,6 +95,41 @@ export async function crearProductoService({
     throw error
   }
 }
+
+
+ 
+ 
+
+// Servicio para generar código de barras único
+export async function generarCodigoBarra() {
+  let codigo
+  let intento = 0
+
+  do {
+    // Ejemplo simple: un número de 9 dígitos
+    codigo = (111111111 + Math.floor(Math.random() * 888888888)).toString()
+
+    const existente = await Producto.findOne({ where: { codigo_barra: codigo } })
+    if (!existente) break
+
+    intento++
+    if (intento > 50) throw { status: 500, message: 'No se pudo generar un código único' }
+  } while (true)
+
+  // Generar imagen del código de barras
+  const barcodePNG = await bwipjs.toBuffer({
+    bcid: 'code128', 
+    text: codigo,
+    scale: 3,
+    height: 10,
+    includetext: true,
+    textxalign: 'center'
+  })
+
+  // Retornar el código y la imagen en base64
+  return { codigo, barcodeBase64: barcodePNG.toString('base64') }
+}
+
 
 
 export async function agregarStockProducto(

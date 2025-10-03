@@ -29,6 +29,22 @@ export async function crearProducto(req, res) {
 }
 
 
+export async function generarCodigoBarra(req, res) {
+  try {
+    const { codigo, barcodeBase64 } = await productoService.generarCodigoBarra()
+    
+    res.status(200).json({
+      message: 'Código de barra generado correctamente',
+      codigo,
+      barcode: `data:image/png;base64,${barcodeBase64}`
+    })
+  } catch (error) {
+    console.error('Error al generar código de barra:', error)
+    res.status(error.status || 500).json({
+      message: error.message || 'Error al generar código de barra'
+    })
+  }
+}
 
 
 export async function editarProducto(req, res) {
