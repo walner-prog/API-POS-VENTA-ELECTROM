@@ -167,8 +167,13 @@ export const listarCajasAdministracion = async (req, res) => {
     });
     res.json({ success: true, ...resultado });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error al obtener las cajas', error });
-  }
+  console.error("Error real:", error);
+  res.status(500).json({
+    success: false,
+    message: 'Error al obtener las cajas',
+    error: error.message || error
+  });
+}
+
 };
 
