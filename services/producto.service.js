@@ -81,24 +81,31 @@ export async function crearProductoService({
 
 
 // Nuevo servicio: Generar código de barras desde un producto
+ 
+
 export async function generarCodigoBarrasService(productoId) {
   const producto = await Producto.findByPk(productoId)
   if (!producto) {
     throw { status: 404, message: 'Producto no encontrado.' }
   }
 
-  // Generar imagen PNG del código de barras
-  const png = await bwipjs.toBuffer({
-    bcid: 'code128',          // Tipo de código
-    text: producto.codigo_barra, // El código único del producto
-    scale: 3,                 // Escala (tamaño)
-    height: 10,               // Altura del código
-    includetext: true,        // Mostrar texto debajo
-    textxalign: 'center'      // Centrar texto
+  return new Promise((resolve, reject) => {
+    bwipjs.toBuffer({
+      bcid: 'code128',
+      text: producto.codigo_barra,
+      scale: 3,
+      height: 10,
+      includetext: true,
+      textxalign: 'center'
+    }, (err, png) => {
+      if (err) {
+        return reject({ status: 500, message: 'Error generando código de barras', error: err })
+      }
+      resolve(png)
+    })
   })
-
-  return png
 }
+
 
 
 
