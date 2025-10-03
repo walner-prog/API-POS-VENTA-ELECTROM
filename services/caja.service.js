@@ -465,8 +465,7 @@ export async function cajaActualService(usuario_id) {
 }
 
 // Esta función lista las cajas (abiertas y cerradas) del usuario autenticado para un selector
-export const listarCajasParaSelectorService = async (req) => {
-  const usuario_id = req.usuario?.id;
+export const listarCajasParaSelectorService = async (usuario_id) => {
   if (!usuario_id) {
     throw { status: 401, message: "Usuario no autenticado." };
   }
