@@ -118,13 +118,16 @@ export const cajaActual = async (req, res) => {
 }
 
 export const obtenerCajasUltimos31Dias = async (req, res) => {
-  try {
+ try {
     const data = await listarCajasParaSelectorService(req.usuario.id);
-    res.json(data);
+    res.json({
+      success: true,
+      data
+    });
   } catch (error) {
     res.status(error.status || 500).json({
       success: false,
-      message: error.message || 'Error al obtener cajas de los últimos 31 días'
+      message: error.message || "Error al obtener cajas de los últimos 31 días"
     });
   }
 };
