@@ -21,7 +21,7 @@ import tienePermiso from '../middlewares/tienePermiso.js';
 const router = express.Router();
 
 router.post('/', authMiddleware('crear_productos'), crearProducto);
-router.get('/generar/codigo/barra/:id', obtenerCodigoBarras);
+router.get('/generar/codigo/barra/sin/codigo/:id', obtenerCodigoBarras);
 router.put('/:id', authMiddleware, editarProducto);
 router.get('/historial/precios/producto/:id', authMiddleware, obtenerHistorialProducto);
 router.delete('/:id', authMiddleware, eliminarProducto);
