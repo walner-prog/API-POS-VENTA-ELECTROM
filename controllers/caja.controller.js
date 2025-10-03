@@ -8,7 +8,7 @@ import {
   listarCajasParaSelectorService,
   agregarMontoInicialCajaService,
   getAllCajasGlobal
-} from '../services/caja.service.js'
+} from '../services/caja.service.js' 
  
  
 
@@ -74,7 +74,7 @@ export const verCajaAbierta = async (req, res) => {
 export const historialCierres = async (req, res) => {
   try {
     const usuario_id = req.usuario.id;
-    const { dia, pagina = 1, limite = 5, estadoCaja } = req.query;
+    const { dia, pagina = 1, limite = 100, estadoCaja } = req.query;
 
     const data = await historialCierresService(
       usuario_id,
