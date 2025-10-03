@@ -574,7 +574,7 @@ export const getAllCajasGlobal = async ({ pagina = 1, limite = 300, fecha = null
     where: whereCajas,
     include: [{ model: Usuario, attributes: ['id', 'nombre'] }],
     order: [['created_at', 'DESC']],
-    limit,
+    limit:limite,
     offset
   });
 
