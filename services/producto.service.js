@@ -8,7 +8,6 @@ import {
 } from '../models/index.js'
 import sequelize from '../config/database.js'
 import { Op,fn, col, literal  } from 'sequelize'
-import bwipjs from 'bwip-js'
  
 
 export async function crearProductoService({
@@ -25,35 +24,53 @@ export async function crearProductoService({
   const t = await sequelize.transaction()
   try {
     if (!categoria_id) {
-      throw { status: 400, message: 'La categoría es obligatoria para registrar el producto.' }
+      throw {
+        status: 400,
+        message: 'La categoría es obligatoria para registrar el producto.'
+      }
     }
 
     const categoriaExiste = await Categoria.findByPk(categoria_id, { transaction: t })
     if (!categoriaExiste) {
-      throw { status: 400, message: 'La categoría seleccionada no existe.' }
+      throw {
+        status: 400,
+        message: 'La categoría seleccionada no existe. Por favor seleccione una válida.'
+      }
     }
 
     if (typeof precio_compra !== 'number' || precio_compra <= 0) {
-      throw { status: 400, message: 'El precio de compra debe ser mayor que cero.' }
+      throw { status: 400, message: 'El precio de compra debe ser un número mayor a cero.' }
     }
 
     if (typeof precio_venta !== 'number' || precio_venta <= 0) {
-      throw { status: 400, message: 'El precio de venta debe ser mayor que cero.' }
+      throw { status: 400, message: 'El precio de venta debe ser un número mayor a cero.' }
     }
 
     if (precio_venta <= precio_compra) {
-      throw { status: 400, message: 'El precio de venta debe ser mayor que el precio de compra.' }
+      throw {
+        status: 400,
+        message: 'El precio de venta debe ser mayor que el precio de compra.'
+      }
     }
 
     if (stock <= 0) {
-      throw { status: 400, message: 'El stock debe ser mayor que cero.' }
+      throw {
+        status: 400,
+        message: 'El stock debe ser mayor que cero.'
+      }
     }
 
-    // Generar código único si no viene
+
     const codigo = codigo_barra || `CB-${Date.now()}`
-    const existente = await Producto.findOne({ where: { codigo_barra: codigo }, transaction: t })
+    const existente = await Producto.findOne({
+      where: { codigo_barra: codigo },
+      transaction: t
+    })
     if (existente) {
-      throw { status: 400, message: 'Ya existe un producto con ese código de barra.' }
+      throw {
+        status: 400,
+        message: 'Ya existe un producto con ese código de barra.'
+      }
     }
 
     const utilidad = precio_venta - precio_compra
@@ -68,7 +85,7 @@ export async function crearProductoService({
       descuento: descuento || 0.00,
       unidad_medida: unidad_medida || null,
       presentacion: presentacion || null,
-      stock: stock || 0
+      stock: stock  || 0
     }, { transaction: t })
 
     await t.commit()
@@ -78,35 +95,6 @@ export async function crearProductoService({
     throw error
   }
 }
-
-
-// Nuevo servicio: Generar código de barras desde un producto
- 
-
-export async function generarCodigoBarrasService(productoId) {
-  const producto = await Producto.findByPk(productoId)
-  if (!producto) {
-    throw { status: 404, message: 'Producto no encontrado.' }
-  }
-
-  return new Promise((resolve, reject) => {
-    bwipjs.toBuffer({
-      bcid: 'code128',
-      text: producto.codigo_barra,
-      scale: 3,
-      height: 10,
-      includetext: true,
-      textxalign: 'center'
-    }, (err, png) => {
-      if (err) {
-        return reject({ status: 500, message: 'Error generando código de barras', error: err })
-      }
-      resolve(png)
-    })
-  })
-}
-
-
 
 
 export async function agregarStockProducto(
