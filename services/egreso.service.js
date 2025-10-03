@@ -50,74 +50,83 @@ export const crearEgresoService = async (datos, usuario_id) => {
 }
 
 export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
-    // 1. Buscar el egreso activo que se quiere editar
-    const egreso = await Egreso.findOne({
-        where: { id: egreso_id, estado: 'activo' }
-    });
+    // Iniciar transacción
+    return await sequelize.transaction(async (t) => {
 
-    if (!egreso) {
-        throw { status: 404, message: 'Egreso no encontrado o anulado' };
-    }
+        // 1. Buscar el egreso activo que se quiere editar
+        const egreso = await Egreso.findOne({
+            where: { id: egreso_id, estado: 'activo' },
+            transaction: t
+        });
 
-    // 🚫 Prohibir edición de egresos de tipo compra_productos
-    if (egreso.tipo === 'compra_productos') {
-        throw { status: 400, message: 'No se permite editar egresos de tipo compra_productos' };
-    }
-
-    // 2. Verificar que la caja esté abierta y fue abierta por el mismo usuario
-    const caja = await Caja.findOne({
-        where: {
-            id: egreso.caja_id,
-            estado: 'abierta',
-            abierto_por: usuario_id
+        if (!egreso) {
+            throw { status: 404, message: 'Egreso no encontrado o anulado' };
         }
-    });
 
-    if (!caja) {
-        throw { status: 400, message: 'Caja no encontrada o cerrada por otro usuario' };
-    }
-
-    // 3. Calcular monto disponible (excluyendo el egreso actual)
-    const totalVentas = await Venta.sum('total', {
-        where: { caja_id: caja.id, estado: 'completada' }
-    }) || 0;
-
-    const totalEgresos = await Egreso.sum('monto', {
-        where: {
-            caja_id: caja.id,
-            estado: 'activo',
-            id: { [Op.ne]: egreso.id } // excluye el egreso actual
+        // 🚫 Prohibir edición de egresos de tipo compra_productos
+        if (egreso.tipo === 'compra_productos') {
+            throw { status: 400, message: 'No se permite editar egresos de tipo compra_productos' };
         }
-    }) || 0;
 
-    const totalIngresos = await Ingreso.sum('monto', {
-        where: { caja_id: caja.id, estado: 'activo' }
-    }) || 0;
+        // 2. Verificar que la caja esté abierta y fue abierta por el mismo usuario
+        const caja = await Caja.findOne({
+            where: {
+                id: egreso.caja_id,
+                estado: 'abierta',
+                abierto_por: usuario_id
+            },
+            transaction: t
+        });
 
-    const montoDisponible = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
-    const nuevoMonto = parseFloat(datos.monto);
+        if (!caja) {
+            throw { status: 400, message: 'Caja no encontrada o cerrada por otro usuario' };
+        }
 
-    if (nuevoMonto > montoDisponible) {
-        const faltante = (nuevoMonto - montoDisponible).toFixed(2);
-        throw {
-            status: 400,
-            message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(2)}, faltan $${faltante} para cubrir este egreso.`
+        // 3. Calcular monto disponible (excluyendo el egreso actual)
+        const totalVentas = await Venta.sum('total', {
+            where: { caja_id: caja.id, estado: 'completada' },
+            transaction: t
+        }) || 0;
+
+        const totalEgresos = await Egreso.sum('monto', {
+            where: {
+                caja_id: caja.id,
+                estado: 'activo',
+                id: { [Op.ne]: egreso.id }
+            },
+            transaction: t
+        }) || 0;
+
+        const totalIngresos = await Ingreso.sum('monto', {
+            where: { caja_id: caja.id, estado: 'activo' },
+            transaction: t
+        }) || 0;
+
+        const montoDisponible = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
+        const nuevoMonto = parseFloat(datos.monto);
+
+        if (nuevoMonto > montoDisponible) {
+            const faltante = (nuevoMonto - montoDisponible).toFixed(2);
+            throw {
+                status: 400,
+                message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(2)}, faltan $${faltante} para cubrir este egreso.`
+            };
+        }
+
+        // 4. Actualizar egreso
+        egreso.tipo = datos.tipo;
+        egreso.referencia = datos.referencia || null;
+        egreso.monto = nuevoMonto;
+        egreso.descripcion = datos.descripcion || null;
+
+        await egreso.save({ transaction: t });
+
+        return {
+            success: true,
+            message: 'Egreso actualizado correctamente',
+            egreso
         };
-    }
-
-    // 4. Actualizar egreso
-    egreso.tipo = datos.tipo;
-    egreso.referencia = datos.referencia || null;
-    egreso.monto = nuevoMonto;
-    egreso.descripcion = datos.descripcion || null;
-
-    await egreso.save();
-
-    return {
-        success: true,
-        message: 'Egreso actualizado correctamente',
-        egreso
-    };
+    }); // la transacción se hace commit si todo sale bien, rollback si hay error
 };
 
 
