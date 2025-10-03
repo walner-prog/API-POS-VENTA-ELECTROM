@@ -290,7 +290,7 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
     where.categoria_id = filtros.categoria_id;
   }
 
-  const { pagina = 1, limite = 10 } = paginacion;
+  const { pagina = 1, limite = 300 } = paginacion;
   const offset = (pagina - 1) * limite;
 
   const { count, rows } = await Producto.findAndCountAll({
@@ -395,7 +395,7 @@ export async function obtenerProductoPorIdService(id) {
 
 
 // Obtener productos más vendidos (paginados, últimos 30 días, con búsqueda opcional)
-export const obtenerProductosMasVendidos = async (page = 1, limit = 10, search = '') => {
+export const obtenerProductosMasVendidos = async (page = 1, limit = 300, search = '') => {
   try {
     const fechaLimite = new Date()
     fechaLimite.setDate(fechaLimite.getDate() - 30)
@@ -442,7 +442,7 @@ export const obtenerProductosMasVendidos = async (page = 1, limit = 10, search =
 }
 
 // Obtener productos menos vendidos (paginados, últimos 30 días, con búsqueda opcional)
-export const obtenerProductosMenosVendidos = async (page = 1, limit = 10, search = '') => {
+export const obtenerProductosMenosVendidos = async (page = 1, limit = 300, search = '') => {
   try {
     const fechaLimite = new Date()
     fechaLimite.setDate(fechaLimite.getDate() - 30)
@@ -491,7 +491,7 @@ export const obtenerProductosMenosVendidos = async (page = 1, limit = 10, search
 
 // obtener todos los productos  que van cambiando su stock
 
-export async function listarMovimientosStock({ page = 1, limit = 10, busqueda = '', tipo_movimiento }) {
+export async function listarMovimientosStock({ page = 1, limit = 300, busqueda = '', tipo_movimiento }) {
   const offset = (page - 1) * limit;
 
   // Condición principal para StockMovimiento (tipo_movimiento)

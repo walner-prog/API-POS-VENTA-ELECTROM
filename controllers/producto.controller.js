@@ -96,7 +96,7 @@ export async function listarProductos(req, res) {
       busqueda,
       categoria_id,
       pagina = 1,
-      limite = 20
+      limite = 300
     } = req.query;
 
     const filtros = {
@@ -135,6 +135,8 @@ export async function obtenerProductoPorIdController(req, res) {
 
 export async function productosPorVencer(req, res) {
   try {
+
+    // Permitir al usuario especificar los días de aviso a través de un query param
     const diasAviso = req.query.diasAviso ? Number(req.query.diasAviso) : 7;
     const lotes = await productoService.productosPorVencer(diasAviso);
     res.json(lotes);
@@ -166,7 +168,7 @@ export async function obtenerProductos(req, res) {
 
 export const getProductosMasVendidos = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '' } = req.query  // incluye búsqueda opcional
+    const { page = 1, limit = 300, search = '' } = req.query  // incluye búsqueda opcional
 
     const productosVendidos = await productoService.obtenerProductosMasVendidos(
       parseInt(page),
@@ -191,7 +193,7 @@ export const getProductosMasVendidos = async (req, res) => {
 
  export const getProductosMenosVendidos = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '' } = req.query
+    const { page = 1, limit = 300, search = '' } = req.query
 
     const productos = await productoService.obtenerProductosMenosVendidos(
       parseInt(page),
@@ -222,7 +224,7 @@ export async function listarMovimientosDeStock(req, res) {
 
     const data = await productoService.listarMovimientosStock({
       page: parseInt(page) || 1,
-      limit: parseInt(limit) || 10,
+      limit: parseInt(limit) || 300,
       busqueda: busqueda || '',
       tipo_movimiento: tipo_movimiento || null
     });
