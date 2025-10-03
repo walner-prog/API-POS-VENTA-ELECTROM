@@ -13,7 +13,7 @@ import {
   getProductosMasVendidos,
   getProductosMenosVendidos,
   listarMovimientosDeStock,
-  obtenerCodigoBarras
+  
 } from '../controllers/producto.controller.js'
 import { validarAgregarStock, validarRestarStock } from '../validator/productoStock.validation.js'
 import authMiddleware from '../middlewares/auth.js'
@@ -21,7 +21,7 @@ import tienePermiso from '../middlewares/tienePermiso.js';
 const router = express.Router();
 
 router.post('/', authMiddleware('crear_productos'), crearProducto);
-router.get('/generar/codigo/barra/sin/codigo/de/producto/fabricado/:id', authMiddleware, obtenerCodigoBarras);
+
 router.put('/:id', authMiddleware, editarProducto);
 router.get('/historial/precios/producto/:id', authMiddleware, obtenerHistorialProducto);
 router.delete('/:id', authMiddleware, eliminarProducto);
