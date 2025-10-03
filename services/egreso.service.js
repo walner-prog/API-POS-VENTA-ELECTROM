@@ -59,6 +59,11 @@ export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
         throw { status: 404, message: 'Egreso no encontrado o anulado' };
     }
 
+    // 🚫 Prohibir edición de egresos de tipo compra_productos
+    if (egreso.tipo === 'compra_productos') {
+        throw { status: 400, message: 'No se permite editar egresos de tipo compra_productos' };
+    }
+
     // 2. Verificar que la caja esté abierta y fue abierta por el mismo usuario
     const caja = await Caja.findOne({
         where: {
@@ -85,12 +90,10 @@ export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
         }
     }) || 0;
 
-    // ✅ NUEVA LÍNEA: Suma los ingresos activos
     const totalIngresos = await Ingreso.sum('monto', {
         where: { caja_id: caja.id, estado: 'activo' }
     }) || 0;
 
-    // ✅ CÁLCULO ACTUALIZADO: Incluye los ingresos
     const montoDisponible = parseFloat(caja.monto_inicial) + totalVentas + totalIngresos - totalEgresos;
     const nuevoMonto = parseFloat(datos.monto);
 
@@ -116,6 +119,7 @@ export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
         egreso
     };
 };
+
 
 
 
