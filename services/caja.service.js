@@ -555,25 +555,37 @@ export async function agregarMontoInicialCajaService(usuario_id, montoAgregar) {
 
 // Esta función obtiene todas las cajas con sus totales calculados 
 
- 
-export const getAllCajasGlobal = async () => {
-  const cajas = await Caja.findAll({
-    include: [
-      {
-        model: Usuario,
-        attributes: ['id', 'nombre'] // Solo traemos lo necesario
-      }
-    ],
-    order: [['created_at', 'DESC']]
+
+
+export const getAllCajasGlobal = async ({ pagina = 1, limite = 300, fecha = null }) => {
+  let whereCajas = {};
+  if (fecha) {
+    const inicioDia = new Date(fecha);
+    inicioDia.setHours(0, 0, 0, 0);
+    const finDia = new Date(fecha);
+    finDia.setHours(23, 59, 59, 999);
+    whereCajas.created_at = { [Op.between]: [inicioDia, finDia] };
+  }
+
+  const offset = (pagina - 1) * limite;
+
+  // Traer solo las cajas de la página actual
+  const { rows: cajas, count: total } = await Caja.findAndCountAll({
+    where: whereCajas,
+    include: [{ model: Usuario, attributes: ['id', 'nombre'] }],
+    order: [['created_at', 'DESC']],
+    limit,
+    offset
   });
 
   const resultados = [];
 
   for (const caja of cajas) {
-    // Traer movimientos relacionados con esta caja
-    const ventas = await Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' } });
-    const egresos = await Egreso.findAll({ where: { caja_id: caja.id, estado: 'activo' } });
-    const ingresos = await Ingreso.findAll({ where: { caja_id: caja.id, estado: 'activo' } });
+    const [ventas, egresos, ingresos] = await Promise.all([
+      Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' } }),
+      Egreso.findAll({ where: { caja_id: caja.id, estado: 'activo' } }),
+      Ingreso.findAll({ where: { caja_id: caja.id, estado: 'activo' } })
+    ]);
 
     const totalVentas = ventas.reduce((sum, v) => sum + parseFloat(v.total), 0);
     const totalEgresos = egresos.reduce((sum, e) => sum + parseFloat(e.monto), 0);
@@ -595,8 +607,15 @@ export const getAllCajasGlobal = async () => {
     });
   }
 
-  return resultados;
+  return {
+    total,
+    totalPaginas: Math.ceil(total / limite),
+    paginaActual: pagina,
+    limite,
+    cajas: resultados
+  };
 };
+
 
 
 

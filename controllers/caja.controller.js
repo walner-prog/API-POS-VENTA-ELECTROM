@@ -159,11 +159,16 @@ export const agregarMontoInicialCajaController = async (req, res) => {
 
 export const listarCajasAdministracion = async (req, res) => {
   try {
-    const cajas = await getAllCajasGlobal();
-    res.json(cajas);
+    const { pagina = 1, limite = 300, fecha } = req.query; // recibir query params
+    const resultado = await getAllCajasGlobal({ 
+      pagina: parseInt(pagina), 
+      limite: parseInt(limite),
+      fecha: fecha || null
+    });
+    res.json({ success: true, ...resultado });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error al obtener las cajas', error });
+    res.status(500).json({ success: false, message: 'Error al obtener las cajas', error });
   }
 };
 

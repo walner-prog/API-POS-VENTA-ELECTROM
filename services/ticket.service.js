@@ -8,7 +8,7 @@ export async function listarTicketsPorCajaService(caja_id) {
    // Aplicamos la zona horaria correcta para la validación
     const nowNicaragua = getCurrentTimeInTimezone(NICARAGUA_OFFSET_MINUTES);
     const fechaLimite = new Date(nowNicaragua);
-    fechaLimite.setDate(fechaLimite.getDate() - 30);
+    fechaLimite.setDate(fechaLimite.getDate() - 31);
     // Para simplificar, la hora de `fechaLimite` debe ser la medianoche del día límite
     fechaLimite.setHours(0, 0, 0, 0);
 
