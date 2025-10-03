@@ -49,12 +49,12 @@ export const cancelarVenta = async (req, res) => {
   }
 };
 
-
 export const listarVentasDelDia = async (req, res) => {
   try {
-    const { pagina = 1, limite = 5, estado = null, caja_id = null } = req.query;
+    const { pagina = 1, limite = 300, estado = null, caja_id = null } = req.query;
 
     const resultado = await obtenerVentasDelDia({
+      usuario_id: req.usuario.id, // 🔹 Usuario autenticado
       pagina: Number(pagina),
       limite: Number(limite),
       estado: estado || null,
@@ -67,6 +67,7 @@ export const listarVentasDelDia = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error al obtener ventas' });
   }
 };
+
 
 export const obtenerTotalesVentasPorCajaController = async (req, res) => {
   try {

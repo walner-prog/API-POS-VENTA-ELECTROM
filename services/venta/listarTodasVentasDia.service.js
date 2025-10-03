@@ -3,18 +3,13 @@ import { Op } from 'sequelize';
 // Importamos la función de utilidad y el offset
 import { getDailyDateRange, NICARAGUA_OFFSET_MINUTES } from "../../utils/dateUtils.js";
 
-export const obtenerVentasDelDia = async ({ pagina = 1, limite = 5, estado = null, caja_id = null }) => {
+export const obtenerVentasDelDia = async ({ usuario_id, pagina = 1, limite = 300, estado = null, caja_id = null }) => {
     const offset = (pagina - 1) * limite;
 
-   // Usamos la función de utilidad para obtener las fechas
     const { inicioUTC, finUTC } = getDailyDateRange(NICARAGUA_OFFSET_MINUTES);
 
-    //console.log(`Rango de fechas para la consulta: ${inicioUTC.toISOString()} - ${finUTC.toISOString()}`);
-
     const whereClause = {
-        created_at: {
-            [Op.between]: [inicioUTC, finUTC] // Usamos las fechas que ya vienen corregidas
-        }
+        created_at: { [Op.between]: [inicioUTC, finUTC] }
     };
 
     if (estado) whereClause.estado = estado;
@@ -25,6 +20,7 @@ export const obtenerVentasDelDia = async ({ pagina = 1, limite = 5, estado = nul
         include: [
             {
                 model: Caja,
+                where: { usuario_id }, // 🔹 Filtramos solo cajas del usuario autenticado
                 include: [{ model: Usuario, attributes: ['id', 'nombre'] }]
             },
             {
