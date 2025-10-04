@@ -81,6 +81,10 @@ export const obtenerReporteController = async (req, res) => {
     // Ajustar la fechaFin para incluir todo el día
     fechaFinDate.setHours(23, 59, 59, 999);
 
+    console.log('Fecha Inicio:', fechaInicioDate);
+console.log('Fecha Fin:', fechaFinDate);
+
+
     const reporte = await obtenerReporteTotalesDetallado(fechaInicioDate, fechaFinDate);
 
     return res.json({
