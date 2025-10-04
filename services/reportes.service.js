@@ -65,3 +65,65 @@ export async function obtenerReporteTotales(fechaInicio, fechaFin) {
     throw new Error('Error al obtener los totales de ventas y ganancias.');
   }
 }
+
+
+export async function obtenerReporteTotalesDetallado(fechaInicio, fechaFin) {
+  try {
+    // 1. Obtener todas las ventas completadas con sus totales y descuentos
+    const ventasCompletadas = await Venta.findAll({
+      attributes: ['id', 'subtotal', 'descuento', 'total'],
+      where: {
+        estado: 'completada',
+        created_at: { [Op.between]: [fechaInicio, fechaFin] }
+      },
+      raw: true
+    });
+
+    if (!ventasCompletadas.length) {
+      return {
+        subtotalVentas: 0,
+        totalDescuentos: 0,
+        totalVentas: 0,
+        costoTotalProductos: 0,
+        totalGanancias: 0
+      };
+    }
+
+    const ventasIds = ventasCompletadas.map(v => v.id);
+
+    // 2. Sumar subtotales, descuentos y total de ventas
+    const subtotalVentas = ventasCompletadas.reduce((sum, v) => sum + parseFloat(v.subtotal), 0);
+    const totalDescuentos = ventasCompletadas.reduce((sum, v) => sum + parseFloat(v.descuento), 0);
+    const totalVentas = ventasCompletadas.reduce((sum, v) => sum + parseFloat(v.total), 0);
+
+    // 3. Calcular costo total considerando cada línea de detalle
+    const costoVentas = await DetalleVenta.findAll({
+      attributes: [
+        [fn('SUM', literal('`DetalleVenta`.`cantidad` * `Producto`.`precio_compra`')), 'costoTotalProductos']
+      ],
+      where: { venta_id: { [Op.in]: ventasIds } },
+      include: [{ model: Producto, attributes: [] }],
+      raw: true
+    });
+
+    const costoTotalProductos = parseFloat(costoVentas[0]?.costoTotalProductos) || 0;
+
+    // 4. Ganancia neta
+    const totalGanancias = totalVentas - costoTotalProductos;
+
+    return {
+      subtotalVentas,
+      totalDescuentos,
+      totalVentas,
+      costoTotalProductos,
+      totalGanancias
+    };
+
+  } catch (error) {
+    console.error('Error al obtener el reporte detallado de totales:', error);
+    throw new Error('Error al obtener el reporte detallado de ventas y ganancias.');
+  }
+}
+
+
+

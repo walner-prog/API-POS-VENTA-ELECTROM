@@ -1,4 +1,4 @@
-import { obtenerReporteTotales } from '../services/reportes.service.js';
+import { obtenerReporteTotales,obtenerReporteTotalesDetallado } from '../services/reportes.service.js';
 import { 
     getDailyDateRange, 
     getWeeklyDateRange, 
@@ -60,4 +60,40 @@ export const getReporteMesAnterior = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+};
+
+// --- REPORTE PERSONALIZADO ---
+
+export const obtenerReporteController = async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin } = req.query;
+
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({
+        message: 'Debe proporcionar fechaInicio y fechaFin en formato YYYY-MM-DD'
+      });
+    }
+
+    // Convertir las fechas a objetos Date
+    const fechaInicioDate = new Date(fechaInicio);
+    const fechaFinDate = new Date(fechaFin);
+
+    // Ajustar la fechaFin para incluir todo el día
+    fechaFinDate.setHours(23, 59, 59, 999);
+
+    const reporte = await obtenerReporteTotalesDetallado(fechaInicioDate, fechaFinDate);
+
+    return res.json({
+      success: true,
+      data: reporte
+    });
+
+  } catch (error) {
+    console.error('Error en el controlador de reporte:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al obtener el reporte de ventas',
+      error: error.message
+    });
+  }
 };
