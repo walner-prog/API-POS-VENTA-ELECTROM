@@ -69,7 +69,9 @@ export async function obtenerReporteTotales(fechaInicio, fechaFin) {
 
 export async function obtenerReporteTotalesDetallado(fechaInicio, fechaFin) {
   try {
-    // 1. Obtener todas las ventas completadas con sus totales y descuentos
+    // 1. Obtener todas las ventas completadas con sus totales y descuentos ajustemos la fecha fin para incluir todo el día
+
+    fechaFin.setHours(23, 59, 59, 999);
     const ventasCompletadas = await Venta.findAll({
       attributes: ['id', 'subtotal', 'descuento', 'total'],
       where: {
