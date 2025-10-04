@@ -67,16 +67,37 @@ export async function obtenerReporteTotales(fechaInicio, fechaFin) {
 }
 
 
+ 
+// Offset de Nicaragua en minutos (-6 horas)
+const NICARAGUA_OFFSET_MINUTES = -360;
+
+/**
+ * Convierte una fecha local a UTC considerando el offset de Nicaragua
+ */
+function ajustarFechaUTC(fecha) {
+  const fechaUTC = new Date(fecha);
+  fechaUTC.setMinutes(fechaUTC.getMinutes() - NICARAGUA_OFFSET_MINUTES);
+  return fechaUTC;
+}
+
+/**
+ * Obtiene un reporte detallado de ventas, costos y ganancias considerando descuentos y zona horaria.
+ * @param {Date} fechaInicio
+ * @param {Date} fechaFin
+ */
 export async function obtenerReporteTotalesDetallado(fechaInicio, fechaFin) {
   try {
-    // 1. Obtener todas las ventas completadas con sus totales y descuentos ajustemos la fecha fin para incluir todo el día
+    // Ajustar fechas a UTC según Nicaragua
+    const inicioUTC = ajustarFechaUTC(fechaInicio);
+    const finUTC = ajustarFechaUTC(new Date(fechaFin.getTime()));
+    finUTC.setHours(23, 59, 59, 999); // Incluir todo el día
 
-   // fechaFin.setHours(23, 59, 59, 999);
+    // 1. Obtener todas las ventas completadas con sus totales y descuentos
     const ventasCompletadas = await Venta.findAll({
       attributes: ['id', 'subtotal', 'descuento', 'total'],
       where: {
         estado: 'completada',
-        created_at: { [Op.between]: [fechaInicio, fechaFin] }
+        created_at: { [Op.between]: [inicioUTC, finUTC] }
       },
       raw: true
     });
