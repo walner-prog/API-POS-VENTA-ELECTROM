@@ -4,11 +4,11 @@ import {
   DetalleVenta,
   Categoria,
   HistorialProducto,
-  StockMovimiento
-} from '../models/index.js'
-import sequelize from '../config/database.js'
-import { Op,fn, col, literal  } from 'sequelize'
-import bwipjs from 'bwip-js' // Para generar códigos de barras
+  StockMovimiento,
+} from "../models/index.js";
+import sequelize from "../config/database.js";
+import { Op, fn, col, literal } from "sequelize";
+import bwipjs from "bwip-js"; // Para generar códigos de barras
 
 export async function crearProductoService({
   nombre,
@@ -19,129 +19,138 @@ export async function crearProductoService({
   unidad_medida,
   presentacion,
   stock,
-  descuento
+  descuento,
 }) {
-  const t = await sequelize.transaction()
+  const t = await sequelize.transaction();
   try {
     if (!categoria_id) {
       throw {
         status: 400,
-        message: 'La categoría es obligatoria para registrar el producto.'
-      }
+        message: "La categoría es obligatoria para registrar el producto.",
+      };
     }
 
-    const categoriaExiste = await Categoria.findByPk(categoria_id, { transaction: t })
+    const categoriaExiste = await Categoria.findByPk(categoria_id, {
+      transaction: t,
+    });
     if (!categoriaExiste) {
       throw {
         status: 400,
-        message: 'La categoría seleccionada no existe. Por favor seleccione una válida.'
-      }
+        message:
+          "La categoría seleccionada no existe. Por favor seleccione una válida.",
+      };
     }
 
-    if (typeof precio_compra !== 'number' || precio_compra <= 0) {
-      throw { status: 400, message: 'El precio de compra debe ser un número mayor a cero.' }
+    if (typeof precio_compra !== "number" || precio_compra <= 0) {
+      throw {
+        status: 400,
+        message: "El precio de compra debe ser un número mayor a cero.",
+      };
     }
 
-    if (typeof precio_venta !== 'number' || precio_venta <= 0) {
-      throw { status: 400, message: 'El precio de venta debe ser un número mayor a cero.' }
+    if (typeof precio_venta !== "number" || precio_venta <= 0) {
+      throw {
+        status: 400,
+        message: "El precio de venta debe ser un número mayor a cero.",
+      };
     }
 
     if (precio_venta <= precio_compra) {
       throw {
         status: 400,
-        message: 'El precio de venta debe ser mayor que el precio de compra.'
-      }
+        message: "El precio de venta debe ser mayor que el precio de compra.",
+      };
     }
 
     if (stock <= 0) {
       throw {
         status: 400,
-        message: 'El stock debe ser mayor que cero.'
-      }
+        message: "El stock debe ser mayor que cero.",
+      };
     }
 
-
-    const codigo = codigo_barra || `CB-${Date.now()}`
+    const codigo = codigo_barra || `CB-${Date.now()}`;
     const existente = await Producto.findOne({
       where: { codigo_barra: codigo },
-      transaction: t
-    })
+      transaction: t,
+    });
     if (existente) {
       throw {
         status: 400,
-        message: 'Ya existe un producto con ese código de barra.'
-      }
+        message: "Ya existe un producto con ese código de barra.",
+      };
     }
 
-    const utilidad = precio_venta - precio_compra
+    const utilidad = precio_venta - precio_compra;
 
-    const producto = await Producto.create({
-      nombre,
-      codigo_barra: codigo,
-      categoria_id,
-      precio_compra,
-      precio_venta,
-      utilidad,
-      descuento: descuento || 0.00,
-      unidad_medida: unidad_medida || null,
-      presentacion: presentacion || null,
-      stock: stock  || 0
-    }, { transaction: t })
+    const producto = await Producto.create(
+      {
+        nombre,
+        codigo_barra: codigo,
+        categoria_id,
+        precio_compra,
+        precio_venta,
+        utilidad,
+        descuento: descuento || 0.0,
+        unidad_medida: unidad_medida || null,
+        presentacion: presentacion || null,
+        stock: stock || 0,
+      },
+      { transaction: t }
+    );
 
-    await t.commit()
-    return producto
+    await t.commit();
+    return producto;
   } catch (error) {
-    await t.rollback()
-    throw error
+    await t.rollback();
+    throw error;
   }
 }
 
-
- 
- 
-
 // Servicio para generar código de barras único
 export async function generarCodigoBarra() {
-  let codigo
-  let intento = 0
+  let codigo;
+  let intento = 0;
 
   do {
     // Ejemplo simple: un número de 9 dígitos
-    codigo = (111111111 + Math.floor(Math.random() * 888888888)).toString()
+    codigo = (111111111 + Math.floor(Math.random() * 888888888)).toString();
 
-    const existente = await Producto.findOne({ where: { codigo_barra: codigo } })
-    if (!existente) break
+    const existente = await Producto.findOne({
+      where: { codigo_barra: codigo },
+    });
+    if (!existente) break;
 
-    intento++
-    if (intento > 50) throw { status: 500, message: 'No se pudo generar un código único' }
-  } while (true)
+    intento++;
+    if (intento > 50)
+      throw { status: 500, message: "No se pudo generar un código único" };
+  } while (true);
 
   // Generar imagen del código de barras
   const barcodePNG = await bwipjs.toBuffer({
-    bcid: 'code128', 
+    bcid: "code128",
     text: codigo,
     scale: 3,
     height: 10,
     includetext: true,
-    textxalign: 'center'
-  })
+    textxalign: "center",
+  });
 
   // Retornar el código y la imagen en base64
-  return { codigo, barcodeBase64: barcodePNG.toString('base64') }
+  return { codigo, barcodeBase64: barcodePNG.toString("base64") };
 }
-
-
 
 export async function agregarStockProducto(
   producto_id,
   cantidad,
-  tipo_movimiento = 'ajuste',
-  observaciones = '',
+  tipo_movimiento = "ajuste",
+  observaciones = "",
   transaction = null
 ) {
-  if (cantidad <= 0) throw { status: 400, message: "Cantidad debe ser mayor a 0" };
+  if (cantidad <= 0)
+    throw { status: 400, message: "Cantidad debe ser mayor a 0" };
 
-  const t = transaction || await sequelize.transaction();
+  const t = transaction || (await sequelize.transaction());
   try {
     const producto = await Producto.findByPk(producto_id, { transaction: t });
     if (!producto) throw { status: 404, message: "Producto no encontrado" };
@@ -150,16 +159,19 @@ export async function agregarStockProducto(
     producto.stock += cantidad;
     await producto.save({ transaction: t });
 
-    await StockMovimiento.create({
-      producto_id,         // 👈 guardamos el producto
-      tipo_movimiento,     
-      cantidad,
-      stock_anterior: stockAnterior,
-      stock_nuevo: producto.stock,
-      referencia_tipo: 'otro',
-      referencia_id: null,
-      observaciones
-    }, { transaction: t });
+    await StockMovimiento.create(
+      {
+        producto_id, // 👈 guardamos el producto
+        tipo_movimiento,
+        cantidad,
+        stock_anterior: stockAnterior,
+        stock_nuevo: producto.stock,
+        referencia_tipo: "otro",
+        referencia_id: null,
+        observaciones,
+      },
+      { transaction: t }
+    );
 
     if (!transaction) await t.commit();
 
@@ -167,82 +179,101 @@ export async function agregarStockProducto(
       success: true,
       message: `Stock actualizado para el producto #${producto_id} - Nuevo stock: ${producto.stock}`,
       producto_id,
-      stock_nuevo: producto.stock
+      stock_nuevo: producto.stock,
     };
-
   } catch (error) {
     if (!transaction) await t.rollback();
     throw error;
   }
 }
 
-
-
-
 export async function editarProductoService(id, data) {
   const t = await sequelize.transaction();
   try {
     const producto = await Producto.findByPk(id, { transaction: t });
-    if (!producto) throw { status: 404, message: 'Producto no encontrado' };
+    if (!producto) throw { status: 404, message: "Producto no encontrado" };
 
     // Validaciones de código de barra
     if (data.codigo_barra && data.codigo_barra !== producto.codigo_barra) {
       const existeOtro = await Producto.findOne({
         where: {
           codigo_barra: data.codigo_barra,
-          id: { [Op.ne]: id }
+          id: { [Op.ne]: id },
         },
-        transaction: t
+        transaction: t,
       });
       if (existeOtro) {
-        throw { status: 400, message: 'Ya existe otro producto con ese código de barra.' };
+        throw {
+          status: 400,
+          message: "Ya existe otro producto con ese código de barra.",
+        };
       }
     }
 
     // Validaciones de precios
-    if (typeof data.precio_compra !== 'number' || data.precio_compra <= 0) {
-      throw { status: 400, message: 'El precio de compra debe ser un número mayor a cero.' };
+    if (typeof data.precio_compra !== "number" || data.precio_compra <= 0) {
+      throw {
+        status: 400,
+        message: "El precio de compra debe ser un número mayor a cero.",
+      };
     }
 
-    if (typeof data.precio_venta !== 'number' || data.precio_venta <= 0) {
-      throw { status: 400, message: 'El precio de venta debe ser un número mayor a cero.' };
+    if (typeof data.precio_venta !== "number" || data.precio_venta <= 0) {
+      throw {
+        status: 400,
+        message: "El precio de venta debe ser un número mayor a cero.",
+      };
     }
 
     if (data.precio_venta <= data.precio_compra) {
-      throw { status: 400, message: 'El precio de venta debe ser mayor que el precio de compra.' };
+      throw {
+        status: 400,
+        message: "El precio de venta debe ser mayor que el precio de compra.",
+      };
     }
 
     if (data.stock <= 0) {
-      throw { status: 400, message: 'El stock debe ser mayor que cero.' };
+      throw { status: 400, message: "El stock debe ser mayor que cero." };
     }
 
-    if (data.descuento !== undefined && (data.descuento < 0 || data.descuento > 100)) {
-      throw { status: 400, message: 'El descuento debe estar entre 0 y 100%' };
+    if (
+      data.descuento !== undefined &&
+      (data.descuento < 0 || data.descuento > 100)
+    ) {
+      throw { status: 400, message: "El descuento debe estar entre 0 y 100%" };
     }
 
     // Valores previos para monitoreo
     const valoresAnteriores = {
       precio_compra: producto.precio_compra,
       precio_venta: producto.precio_venta,
-      descuento: producto.descuento
+      descuento: producto.descuento,
     };
 
     // Actualizar campos correctamente
     const campos = [
-      'nombre',
-      'codigo_barra',
-      'categoria_id',
-      'precio_compra',
-      'precio_venta',
-      'stock',
-      'unidad_medida',
-      'presentacion',
-      'descuento' // Nuevo campo
+      "nombre",
+      "codigo_barra",
+      "categoria_id",
+      "precio_compra",
+      "precio_venta",
+      "stock",
+      "unidad_medida",
+      "presentacion",
+      "descuento", // Nuevo campo
     ];
     for (const campo of campos) {
       if (campo in data) {
         // Asigna el valor tal cual; si es opcional y vacío, entonces null
-        if (['codigo_barra', 'unidad_medida', 'presentacion', 'categoria_id'].includes(campo) && !data[campo]) {
+        if (
+          [
+            "codigo_barra",
+            "unidad_medida",
+            "presentacion",
+            "categoria_id",
+          ].includes(campo) &&
+          !data[campo]
+        ) {
           producto[campo] = null;
         } else {
           producto[campo] = data[campo];
@@ -254,7 +285,7 @@ export async function editarProductoService(id, data) {
     producto.utilidad = producto.precio_venta - producto.precio_compra;
 
     // Monitorear cambios para historial
-    const camposAMonitorear = ['precio_compra', 'precio_venta', 'descuento'];
+    const camposAMonitorear = ["precio_compra", "precio_venta", "descuento"];
     const cambios = [];
     for (const campo of camposAMonitorear) {
       if (campo in data && data[campo] !== valoresAnteriores[campo]) {
@@ -263,7 +294,7 @@ export async function editarProductoService(id, data) {
           campo,
           valor_anterior: valoresAnteriores[campo],
           valor_nuevo: data[campo],
-          usuario_id: data.usuario_id || null
+          usuario_id: data.usuario_id || null,
         });
       }
     }
@@ -282,34 +313,29 @@ export async function editarProductoService(id, data) {
   }
 }
 
-
-
-
-export async function eliminarProductoService (id) {
-  const producto = await Producto.findByPk(id)
-  if (!producto) throw { status: 404, message: 'Producto no encontrado' }
+export async function eliminarProductoService(id) {
+  const producto = await Producto.findByPk(id);
+  if (!producto) throw { status: 404, message: "Producto no encontrado" };
 
   const ventas = await Venta.count({
     include: [
       {
         model: DetalleVenta,
-        where: { producto_id: id }
-      }
-    ]
-  })
+        where: { producto_id: id },
+      },
+    ],
+  });
 
   if (ventas > 0) {
     throw {
       status: 400,
-      message: 'No se puede eliminar producto con ventas asociadas'
-    }
+      message: "No se puede eliminar producto con ventas asociadas",
+    };
   }
 
-  await producto.destroy()
-  return { message: 'Producto eliminado correctamente' }
+  await producto.destroy();
+  return { message: "Producto eliminado correctamente" };
 }
-
- 
 
 export async function listarProductosService(filtros = {}, paginacion = {}) {
   const where = {};
@@ -317,7 +343,7 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
   if (filtros.busqueda) {
     where[Op.or] = [
       { nombre: { [Op.like]: `%${filtros.busqueda}%` } },
-      { codigo_barra: { [Op.like]: `%${filtros.busqueda}%` } }
+      { codigo_barra: { [Op.like]: `%${filtros.busqueda}%` } },
     ];
   }
 
@@ -336,10 +362,10 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
     include: [
       {
         model: Categoria,
-        attributes: ['nombre'],
-        as: 'Categorium'  // asegúrate que este alias coincida con tu modelo Sequelize
-      }
-    ]
+        attributes: ["nombre"],
+        as: "Categorium", // asegúrate que este alias coincida con tu modelo Sequelize
+      },
+    ],
   });
 
   return {
@@ -350,18 +376,17 @@ export async function listarProductosService(filtros = {}, paginacion = {}) {
   };
 }
 
-
-
 export async function restarStockProducto(
   producto_id,
   cantidad,
-  tipo_movimiento = 'ajuste',
-  observaciones = '',
+  tipo_movimiento = "ajuste",
+  observaciones = "",
   transaction = null
 ) {
-  if (cantidad <= 0) throw { status: 400, message: "Cantidad debe ser mayor a 0" };
+  if (cantidad <= 0)
+    throw { status: 400, message: "Cantidad debe ser mayor a 0" };
 
-  const t = transaction || await sequelize.transaction();
+  const t = transaction || (await sequelize.transaction());
   try {
     const producto = await Producto.findByPk(producto_id, { transaction: t });
     if (!producto) throw { status: 404, message: "Producto no encontrado" };
@@ -372,16 +397,19 @@ export async function restarStockProducto(
 
     await producto.save({ transaction: t });
 
-    await StockMovimiento.create({
-      producto_id,          // 👈 guardamos el producto
-      tipo_movimiento,
-      cantidad,
-      stock_anterior: stockAnterior,
-      stock_nuevo: producto.stock,
-      referencia_tipo: 'otro',
-      referencia_id: null,
-      observaciones
-    }, { transaction: t });
+    await StockMovimiento.create(
+      {
+        producto_id, // 👈 guardamos el producto
+        tipo_movimiento,
+        cantidad,
+        stock_anterior: stockAnterior,
+        stock_nuevo: producto.stock,
+        referencia_tipo: "otro",
+        referencia_id: null,
+        observaciones,
+      },
+      { transaction: t }
+    );
 
     if (!transaction) await t.commit();
 
@@ -389,144 +417,144 @@ export async function restarStockProducto(
       success: true,
       message: `Stock actualizado para el producto #${producto_id} - Nuevo stock: ${producto.stock}`,
       producto_id,
-      stock_nuevo: producto.stock
+      stock_nuevo: producto.stock,
     };
-
   } catch (error) {
     if (!transaction) await t.rollback();
     throw error;
   }
 }
 
-
-
-
 export async function obtenerProductoPorIdService(id) {
   const producto = await Producto.findByPk(id, {
     attributes: [
-      'id',
-      'nombre',
-      'codigo_barra',
-      'precio_compra',
-      'precio_venta',
-      'stock',
-      'unidad_medida',
-      'presentacion',
-      'categoria_id'
+      "id",
+      "nombre",
+      "codigo_barra",
+      "precio_compra",
+      "precio_venta",
+      "stock",
+      "unidad_medida",
+      "presentacion",
+      "categoria_id",
     ],
     include: {
       model: Categoria,
-      attributes: ['id', 'nombre']
-    }
+      attributes: ["id", "nombre"],
+    },
   });
 
   if (!producto) {
-    throw { status: 404, message: 'Producto no encontrado' };
+    throw { status: 404, message: "Producto no encontrado" };
   }
 
   return producto;
 }
 
-
-
 // Obtener productos más vendidos (paginados, últimos 30 días, con búsqueda opcional)
-export const obtenerProductosMasVendidos = async (page = 1, limit = 300, search = '') => {
+export const obtenerProductosMasVendidos = async (
+  page = 1,
+  limit = 300,
+  search = ""
+) => {
   try {
-    const fechaLimite = new Date()
-    fechaLimite.setDate(fechaLimite.getDate() - 30)
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - 30);
 
-    const offset = (page - 1) * limit
+    const offset = (page - 1) * limit;
 
     const productosMasVendidos = await DetalleVenta.findAll({
-      attributes: [
-        [fn('SUM', col('cantidad')), 'cantidad_vendida'],
-      ],
+      attributes: [[fn("SUM", col("cantidad")), "cantidad_vendida"]],
       include: [
         {
           model: Producto,
-          attributes: ['nombre', 'stock'],
-          where: search
-            ? { nombre: { [Op.like]: `%${search}%` } }
-            : undefined
+          attributes: ["nombre", "stock"],
+          where: search ? { nombre: { [Op.like]: `%${search}%` } } : undefined,
         },
         {
           model: Venta,
           attributes: [],
           required: true,
           where: {
-            created_at: { [Op.gte]: fechaLimite }
-          }
-        }
+            created_at: { [Op.gte]: fechaLimite },
+          },
+        },
       ],
-      group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
-      order: [[literal('cantidad_vendida'), 'DESC']],
+      group: ["DetalleVenta.producto_id", "Producto.nombre", "Producto.stock"],
+      order: [[literal("cantidad_vendida"), "DESC"]],
       limit,
       offset,
-      raw: true
-    })
+      raw: true,
+    });
 
-    return productosMasVendidos.map(item => ({
-      nombre: item['Producto.nombre'],
+    return productosMasVendidos.map((item) => ({
+      nombre: item["Producto.nombre"],
       cantidad_vendida: parseInt(item.cantidad_vendida, 10),
-      stock_actual: item['Producto.stock'],
-    }))
+      stock_actual: item["Producto.stock"],
+    }));
   } catch (error) {
-    console.error('Error al obtener productos más vendidos:', error)
-    throw new Error('No se pudo generar el reporte de ventas.')
+    console.error("Error al obtener productos más vendidos:", error);
+    throw new Error("No se pudo generar el reporte de ventas.");
   }
-}
+};
 
 // Obtener productos menos vendidos (paginados, últimos 30 días, con búsqueda opcional)
-export const obtenerProductosMenosVendidos = async (page = 1, limit = 300, search = '') => {
+export const obtenerProductosMenosVendidos = async (
+  page = 1,
+  limit = 300,
+  search = ""
+) => {
   try {
-    const fechaLimite = new Date()
-    fechaLimite.setDate(fechaLimite.getDate() - 30)
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - 30);
 
-    const offset = (page - 1) * limit
+    const offset = (page - 1) * limit;
 
     const productosMenosVendidos = await DetalleVenta.findAll({
-      attributes: [
-        [fn('SUM', col('cantidad')), 'cantidad_vendida'],
-      ],
+      attributes: [[fn("SUM", col("cantidad")), "cantidad_vendida"]],
       include: [
         {
           model: Producto,
-          attributes: ['nombre', 'stock'],
-          where: search
-            ? { nombre: { [Op.like]: `%${search}%` } }
-            : undefined
+          attributes: ["nombre", "stock"],
+          where: search ? { nombre: { [Op.like]: `%${search}%` } } : undefined,
         },
         {
           model: Venta,
           attributes: [],
           required: true,
           where: {
-            created_at: { [Op.gte]: fechaLimite }
-          }
-        }
+            created_at: { [Op.gte]: fechaLimite },
+          },
+        },
       ],
-      group: ['DetalleVenta.producto_id', 'Producto.nombre', 'Producto.stock'],
-      order: [[literal('cantidad_vendida'), 'ASC']],
+      group: ["DetalleVenta.producto_id", "Producto.nombre", "Producto.stock"],
+      order: [[literal("cantidad_vendida"), "ASC"]],
       limit,
       offset,
-      raw: true
-    })
+      raw: true,
+    });
 
-    return productosMenosVendidos.map(item => ({
-      nombre: item['Producto.nombre'],
+    return productosMenosVendidos.map((item) => ({
+      nombre: item["Producto.nombre"],
       cantidad_vendida: parseInt(item.cantidad_vendida, 10),
-      stock_actual: item['Producto.stock'],
-    }))
+      stock_actual: item["Producto.stock"],
+    }));
   } catch (error) {
-    console.error('Error al obtener productos menos vendidos:', error)
-    throw new Error('No se pudo generar el reporte de productos menos vendidos.')
+    console.error("Error al obtener productos menos vendidos:", error);
+    throw new Error(
+      "No se pudo generar el reporte de productos menos vendidos."
+    );
   }
-}
-
+};
 
 // obtener todos los productos  que van cambiando su stock
 
-export async function listarMovimientosStock({ page = 1, limit = 300, busqueda = '', tipo_movimiento }) {
+export async function listarMovimientosStock({
+  page = 1,
+  limit = 300,
+  busqueda = "",
+  tipo_movimiento,
+}) {
   const offset = (page - 1) * limit;
 
   // Condición principal para StockMovimiento (tipo_movimiento)
@@ -543,47 +571,56 @@ export async function listarMovimientosStock({ page = 1, limit = 300, busqueda =
 
   const { count, rows } = await StockMovimiento.findAndCountAll({
     where: whereMovimiento,
-    include: [{
-      model: Producto,
-      attributes: ['id', 'nombre'],
-      required: !!busqueda, // Usar 'required' para hacer un INNER JOIN si hay búsqueda
-      where: whereProducto
-    }],
-    order: [['created_at', 'DESC']],
+    include: [
+      {
+        model: Producto,
+        attributes: ["id", "nombre"],
+        required: !!busqueda, // Usar 'required' para hacer un INNER JOIN si hay búsqueda
+        where: whereProducto,
+      },
+    ],
+    order: [["created_at", "DESC"]],
     limit,
-    offset
+    offset,
   });
 
   return {
     movimientos: rows,
     total: count,
     pagina: page,
-    totalPaginas: Math.ceil(count / limit)
+    totalPaginas: Math.ceil(count / limit),
   };
 }
 
-
-
- 
-
 export async function obtenerProductosTodos() {
- 
   const productos = await Producto.findAll({
-    attributes: ['id', 'nombre', 'codigo_barra', 'precio_compra', 'precio_venta', 'stock','unidad_medida', 'presentacion','descuento','categoria_id'],
-    order: [['id', 'ASC']]
+    attributes: [
+      "id",
+      "nombre",
+      "codigo_barra",
+      "precio_compra",
+      "precio_venta",
+      "stock",
+      "unidad_medida",
+      "presentacion",
+      "descuento",
+      "categoria_id",
+    ],
+    order: [["id", "ASC"]],
   });
 
   return productos;
 }
 
-
- 
 export async function actualizarStockAuditadoService({ productos }) {
   const t = await sequelize.transaction();
 
   try {
     if (!productos || !Array.isArray(productos) || productos.length === 0) {
-      throw { status: 400, message: 'No se enviaron productos para actualizar.' };
+      throw {
+        status: 400,
+        message: "No se enviaron productos para actualizar.",
+      };
     }
 
     const resultados = [];
@@ -604,42 +641,33 @@ export async function actualizarStockAuditadoService({ productos }) {
       await producto.update({ stock: stockNuevo }, { transaction: t });
 
       // Registrar movimiento de stock
-      await StockMovimiento.create({
-        producto_id: producto.id,
-        tipo_movimiento:
-          auditoria_inventario > 0
-            ? 'EXCEDENTE'
-            : auditoria_inventario < 0
-            ? 'FALTANTE'
-            : 'ajuste', // o 'AJUSTE' si prefieres
-        cantidad: Math.abs(auditoria_inventario),
-        descripcion:
-          auditoria_inventario === 0
-            ? 'Stock auditado sin cambios'
-            : auditoria_inventario > 0
-            ? `Ajuste de stock (excedente de ${auditoria_inventario} unidad(es))`
-            : `Ajuste de stock (faltante de ${Math.abs(auditoria_inventario)} unidad(es))`,
-        referencia_tipo: 'ajuste', // puedes adaptarlo según tu lógica
-        referencia_id: null,
-        observaciones: 'Auditoría de inventario',
-        stock_anterior: stockAnterior,
-        stock_nuevo: stockNuevo,
-      }, { transaction: t });
-
-      resultados.push({
-        id: producto.id,
-        nombre: producto.nombre,
-        stockAnterior,
-        stockNuevo,
-      });
+      await StockMovimiento.create(
+        {
+          producto_id: producto.id,
+          tipo_movimiento: "ajuste", // ✅ solo valores válidos
+          cantidad: Math.abs(auditoria_inventario),
+          descripcion:
+            auditoria_inventario === 0
+              ? "Stock auditado sin cambios"
+              : auditoria_inventario > 0
+              ? `Ajuste de stock (excedente de ${auditoria_inventario} unidad(es))`
+              : `Ajuste de stock (faltante de ${Math.abs(
+                  auditoria_inventario
+                )} unidad(es))`,
+          referencia_tipo: "ajuste",
+          referencia_id: null,
+          observaciones: "Auditoría de inventario",
+          stock_anterior: stockAnterior,
+          stock_nuevo: stockNuevo,
+        },
+        { transaction: t }
+      );
     }
 
     await t.commit();
-    return { message: 'Stock actualizado correctamente.', data: resultados };
+    return { message: "Stock actualizado correctamente.", data: resultados };
   } catch (error) {
     await t.rollback();
     throw error;
   }
 }
-
-
