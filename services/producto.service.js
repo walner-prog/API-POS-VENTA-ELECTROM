@@ -579,35 +579,31 @@ export async function obtenerProductosTodos() {
 
  
 export async function actualizarStockAuditadoService({ productos }) {
-  const t = await sequelize.transaction()
+  const t = await sequelize.transaction();
+
   try {
     if (!productos || !Array.isArray(productos) || productos.length === 0) {
-      throw { status: 400, message: 'No se enviaron productos para actualizar.' }
+      throw { status: 400, message: 'No se enviaron productos para actualizar.' };
     }
 
-    const resultados = []
-
-    const total = await Producto.count();
-    console.log('🧩 Total productos en BD:', total);
+    const resultados = [];
 
     for (const prod of productos) {
-      const { id, inventarioEncontrado, auditoria_inventario } = prod
+      const { id, inventarioEncontrado, auditoria_inventario } = prod;
 
-      console.log('🔍 Buscando producto con ID:', id)
-
-      const producto = await Producto.findByPk(id, { transaction: t })
+      // Buscar producto
+      const producto = await Producto.findByPk(id, { transaction: t });
       if (!producto) {
-         console.log('⚠️ Producto no encontrado en BD:', id)
-        throw { status: 404, message: `El producto con ID ${id} no existe.` }
+        throw { status: 404, message: `El producto con ID ${id} no existe.` };
       }
 
-      const stockAnterior = producto.stock
-      const stockNuevo = inventarioEncontrado
+      const stockAnterior = producto.stock;
+      const stockNuevo = inventarioEncontrado;
 
-      // 🔄 Actualizar stock
-      await producto.update({ stock: stockNuevo }, { transaction: t })
+      // Actualizar stock del producto
+      await producto.update({ stock: stockNuevo }, { transaction: t });
 
-      // 🧾 Registrar movimiento de stock
+      // Registrar movimiento de stock
       await StockMovimiento.create({
         producto_id: producto.id,
         tipo_movimiento:
@@ -615,7 +611,7 @@ export async function actualizarStockAuditadoService({ productos }) {
             ? 'EXCEDENTE'
             : auditoria_inventario < 0
             ? 'FALTANTE'
-            : 'AJUSTE',
+            : 'auditoria_inventario', // o 'AJUSTE' si prefieres
         cantidad: Math.abs(auditoria_inventario),
         descripcion:
           auditoria_inventario === 0
@@ -623,22 +619,26 @@ export async function actualizarStockAuditadoService({ productos }) {
             : auditoria_inventario > 0
             ? `Ajuste de stock (excedente de ${auditoria_inventario} unidad(es))`
             : `Ajuste de stock (faltante de ${Math.abs(auditoria_inventario)} unidad(es))`,
-        referencia: 'AUDITORÍA DE INVENTARIO',
-      }, { transaction: t })
+        referencia_tipo: 'ajuste', // puedes adaptarlo según tu lógica
+        referencia_id: null,
+        observaciones: 'Auditoría de inventario',
+        stock_anterior: stockAnterior,
+        stock_nuevo: stockNuevo,
+      }, { transaction: t });
 
       resultados.push({
         id: producto.id,
         nombre: producto.nombre,
         stockAnterior,
         stockNuevo,
-      })
+      });
     }
 
-    await t.commit()
-    return { message: 'Stock actualizado correctamente.', data: resultados }
+    await t.commit();
+    return { message: 'Stock actualizado correctamente.', data: resultados };
   } catch (error) {
-    await t.rollback()
-    throw error
+    await t.rollback();
+    throw error;
   }
 }
 
