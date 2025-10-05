@@ -576,3 +576,64 @@ export async function obtenerProductosTodos() {
   return productos;
 }
 
+
+ 
+export async function actualizarStockAuditadoService({ productos }) {
+  const t = await sequelize.transaction()
+  try {
+    if (!productos || !Array.isArray(productos) || productos.length === 0) {
+      throw { status: 400, message: 'No se enviaron productos para actualizar.' }
+    }
+
+    const resultados = []
+
+    for (const prod of productos) {
+      const { id, inventarioEncontrado, auditoria_inventario } = prod
+
+      const producto = await Producto.findByPk(id, { transaction: t })
+      if (!producto) {
+        throw { status: 404, message: `El producto con ID ${id} no existe.` }
+      }
+
+      const stockAnterior = producto.stock
+      const stockNuevo = inventarioEncontrado
+
+      // 🔄 Actualizar stock
+      await producto.update({ stock: stockNuevo }, { transaction: t })
+
+      // 🧾 Registrar movimiento de stock
+      await StockMovimiento.create({
+        producto_id: producto.id,
+        tipo_movimiento:
+          auditoria_inventario > 0
+            ? 'EXCEDENTE'
+            : auditoria_inventario < 0
+            ? 'FALTANTE'
+            : 'AJUSTE',
+        cantidad: Math.abs(auditoria_inventario),
+        descripcion:
+          auditoria_inventario === 0
+            ? 'Stock auditado sin cambios'
+            : auditoria_inventario > 0
+            ? `Ajuste de stock (excedente de ${auditoria_inventario} unidad(es))`
+            : `Ajuste de stock (faltante de ${Math.abs(auditoria_inventario)} unidad(es))`,
+        referencia: 'AUDITORÍA DE INVENTARIO',
+      }, { transaction: t })
+
+      resultados.push({
+        id: producto.id,
+        nombre: producto.nombre,
+        stockAnterior,
+        stockNuevo,
+      })
+    }
+
+    await t.commit()
+    return { message: 'Stock actualizado correctamente.', data: resultados }
+  } catch (error) {
+    await t.rollback()
+    throw error
+  }
+}
+
+
