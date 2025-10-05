@@ -611,7 +611,7 @@ export async function actualizarStockAuditadoService({ productos }) {
             ? 'EXCEDENTE'
             : auditoria_inventario < 0
             ? 'FALTANTE'
-            : 'auditoria_inventario', // o 'AJUSTE' si prefieres
+            : 'ajuste', // o 'AJUSTE' si prefieres
         cantidad: Math.abs(auditoria_inventario),
         descripcion:
           auditoria_inventario === 0
