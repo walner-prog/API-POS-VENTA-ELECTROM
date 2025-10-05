@@ -29,7 +29,7 @@ router.delete('/:id', authMiddleware, eliminarProducto);
 router.get('/', authMiddleware, listarProductos);
 router.get('/:id', authMiddleware, obtenerProductoPorIdController);
 router.get('/todos/productos', authMiddleware, obtenerProductos);
-router.post('/actualizar-stock-auditado/producto',  actualizarStockAuditadoController)
+router.put('/actualizar-stock-auditado/producto',  actualizarStockAuditadoController)
 router.post('/stock/agregar', authMiddleware,validarAgregarStock, agregarStockProducto);
 router.post('/stock/restar', authMiddleware,validarRestarStock, restarStockProducto);
 router.get('/stock/por-vencer', authMiddleware, productosPorVencer);
