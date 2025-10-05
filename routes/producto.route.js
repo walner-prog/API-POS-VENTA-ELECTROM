@@ -29,13 +29,13 @@ router.delete('/:id', authMiddleware, eliminarProducto);
 router.get('/', authMiddleware, listarProductos);
 router.get('/:id', authMiddleware, obtenerProductoPorIdController);
 router.get('/todos/productos', authMiddleware, obtenerProductos);
-
+router.put('/actualizar-stock-auditado',  actualizarStockAuditadoController)
 router.post('/stock/agregar', authMiddleware,validarAgregarStock, agregarStockProducto);
 router.post('/stock/restar', authMiddleware,validarRestarStock, restarStockProducto);
 router.get('/stock/por-vencer', authMiddleware, productosPorVencer);
 router.get('/mas-vendidos/en/plazo/30/dias', authMiddleware, getProductosMasVendidos);
 router.get('/menos-vendidos/10/en/plazo/30/dias', authMiddleware, getProductosMenosVendidos);
 router.get('/movimientos/stock/en/plazo/30/dias/p', authMiddleware, listarMovimientosDeStock);
-router.put('/actualizar-stock-auditado',  actualizarStockAuditadoController)
+
 
 export default router;
