@@ -587,11 +587,17 @@ export async function actualizarStockAuditadoService({ productos }) {
 
     const resultados = []
 
+    const total = await Producto.count();
+    console.log('🧩 Total productos en BD:', total);
+
     for (const prod of productos) {
       const { id, inventarioEncontrado, auditoria_inventario } = prod
 
+      console.log('🔍 Buscando producto con ID:', id)
+
       const producto = await Producto.findByPk(id, { transaction: t })
       if (!producto) {
+         console.log('⚠️ Producto no encontrado en BD:', id)
         throw { status: 404, message: `El producto con ID ${id} no existe.` }
       }
 
