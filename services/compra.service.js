@@ -234,7 +234,7 @@ export async function registrarCompraService(data, usuario) {
 
 export async function listarComprasService(query) {
   try {
-    const { proveedor, limite = 10, pagina = 1, fecha, busqueda } = query;
+    const { proveedor, limite = 300, pagina = 1, fecha, busqueda } = query;
 
     const where = { tipo: "compra_productos" };
 
