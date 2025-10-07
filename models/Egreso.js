@@ -29,6 +29,10 @@ const Egreso = sequelize.define('Egreso', {
     type: DataTypes.STRING(255),
     allowNull: true
   },
+  local_factura_path: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   metodo_pago: {
     type: DataTypes.ENUM('efectivo'),
     defaultValue: 'efectivo'

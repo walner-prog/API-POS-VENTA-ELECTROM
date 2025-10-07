@@ -23,6 +23,7 @@ export async function registrarCompraService(data, usuario) {
       referencia,
       fecha_compra,
       factura_imagen,
+      local_factura_path,
       productos,
       proveedor,
     } = data;
@@ -132,6 +133,7 @@ export async function registrarCompraService(data, usuario) {
         caja_id: caja.id,
         fecha: fecha_compra || new Date(),
         factura_imagen: factura_imagen || null,
+        local_factura_path: local_factura_path || null,
         unidades_gratis_total,
         valor_ahorro_total,
       },
@@ -306,7 +308,8 @@ export async function listarComprasService(query) {
   valor_ahorro_total: c.valor_ahorro_total,
   caja_id: c.caja_id,
   estado: c.estado,
-  factura_imagen: c.factura_imagen || null, // ✅ agregamos este campo
+  factura_imagen: c.factura_imagen || null,
+  local_factura_path: c.local_factura_path || null,
   usuario: c.Usuario
     ? { id: c.Usuario.id, nombre: c.Usuario.nombre }
     : null,
