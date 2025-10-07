@@ -296,27 +296,29 @@ export async function listarComprasService(query) {
       pagina: parseInt(pagina),
       limite: parseInt(limite),
       total_paginas: Math.ceil(total / limite),
-      data: compras.map((c) => ({
-        egreso_id: c.id,
-        referencia: c.referencia,
-        proveedor: c.proveedor,
-        created_at: c.created_at,
-        monto: c.monto,
-        unidades_gratis_total: c.unidades_gratis_total,
-        valor_ahorro_total: c.valor_ahorro_total,
-        caja_id: c.caja_id,
-        estado: c.estado,
-        usuario: c.Usuario
-          ? { id: c.Usuario.id, nombre: c.Usuario.nombre }
-          : null,
-        productos: c.InventarioLotes.map((l) => ({
-          producto_id: l.producto_id,
-          nombre: l.Producto?.nombre || "",
-          cantidad: l.cantidad,
-          fecha_caducidad: l.fecha_caducidad || "NO se Registro",
-          estado: l.estado || "NO se Registro",
-        })),
-      })),
+     data: compras.map((c) => ({
+  egreso_id: c.id,
+  referencia: c.referencia,
+  proveedor: c.proveedor,
+  created_at: c.created_at,
+  monto: c.monto,
+  unidades_gratis_total: c.unidades_gratis_total,
+  valor_ahorro_total: c.valor_ahorro_total,
+  caja_id: c.caja_id,
+  estado: c.estado,
+  factura_imagen: c.factura_imagen || null, // ✅ agregamos este campo
+  usuario: c.Usuario
+    ? { id: c.Usuario.id, nombre: c.Usuario.nombre }
+    : null,
+  productos: c.InventarioLotes.map((l) => ({
+    producto_id: l.producto_id,
+    nombre: l.Producto?.nombre || "",
+    cantidad: l.cantidad,
+    fecha_caducidad: l.fecha_caducidad || "NO se Registro",
+    estado: l.estado || "NO se Registro",
+  })),
+})),
+
     };
   } catch (error) {
     console.error("Error listarComprasService:", error);
