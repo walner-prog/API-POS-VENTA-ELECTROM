@@ -103,9 +103,9 @@ export async function registrarCompraService(data, usuario) {
       const faltante = (monto_total - montoDisponible).toFixed(2);
       throw {
         status: 400,
-        message: `Fondos insuficientes en caja. Disponible: $${montoDisponible.toFixed(
+        message: `Fondos insuficientes en caja. Disponible: C$ ${montoDisponible.toFixed(
           2
-        )}, faltan $${faltante}`,
+        )}, faltan C$ ${faltante}`,
       };
     }
 
@@ -442,3 +442,7 @@ export async function eliminarCompraService(egresoId, usuario) {
   }
 }
 
+
+// este service sera para dar mas almacenamiento a las imagenes de las facturas atraves de codigo
+
+ 

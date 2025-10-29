@@ -7,7 +7,7 @@ import Caja from '../models/caja.js';
 import Venta from '../models/Venta.js';
 import sequelize from "../config/database.js";
 
-import { Op } from "sequelize"; // o en CommonJS: const { Op } = require('sequelize');
+import { Op, fn, col, where } from "sequelize"; // o en CommonJS: const { Op } = require('sequelize');
 
 
 
@@ -86,7 +86,6 @@ export async function registrarUsuarioService({
 
 
 
-
 export async function loginUsuarioService({ nombre, password }) {
   if (!nombre || !password) throw {
     status: 400,
@@ -94,10 +93,10 @@ export async function loginUsuarioService({ nombre, password }) {
   };
 
   const usuario = await Usuario.findOne({
-    where: { nombre },
+    where: where(fn('LOWER', col('nombre')), nombre.toLowerCase()),
     include: {
       model: Rol,
-      attributes: ['nombre'] // solo traemos el rol, no los permisos
+      attributes: ['nombre']
     }
   });
 
@@ -134,6 +133,7 @@ export async function loginUsuarioService({ nombre, password }) {
     }
   };
 }
+
 
 
 
