@@ -132,7 +132,7 @@ export const editarEgresoService = async (egreso_id, datos, usuario_id) => {
 
 
 
-export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, limit = 5 }) => {
+export const listarEgresosPorCajaService = async ({ caja_id, tipo, page = 1, limit = 300 }) => {
   const offset = (page - 1) * limit;
 
   // Limita la búsqueda a egresos de los últimos 31 días

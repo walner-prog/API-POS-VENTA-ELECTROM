@@ -14,15 +14,23 @@ export async function crearIngresoService(data, usuario) {
 }
 
 export async function actualizarIngresoService(id, data) {
-  const ingreso = await Ingreso.findByPk(id);
-  if (!ingreso) throw new Error('Ingreso no encontrado');
-  await ingreso.update(data);
-  return ingreso;
+    const ingreso = await Ingreso.findByPk(id);
+
+    if (!ingreso) throw new Error('Ingreso no encontrado');
+
+    // ✅ Bloquear edición si el ingreso ya está anulado
+    if (ingreso.estado === 'anulado') {
+        throw new Error('No se puede editar un ingreso que ya fue anulado.');
+    }
+
+    await ingreso.update(data);
+    return ingreso;
 }
+
 
  
 export async function listarIngresosPorCajaService(caja_id, query) {
-  const { page = 1, limit = 5, tipo = '' } = query;
+  const { page = 1, limit = 300, tipo = '' } = query;
   const where = { caja_id };
   if (tipo) where.tipo = tipo;
 
