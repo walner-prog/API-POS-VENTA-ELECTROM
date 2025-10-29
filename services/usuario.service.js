@@ -87,39 +87,46 @@ export async function registrarUsuarioService({
 
 
 export async function loginUsuarioService({ nombre, password }) {
-  if (!nombre || !password) throw {
-    status: 400,
-    message: 'nombre y password son requeridos'
-  };
+  if (!nombre || !password) {
+    throw {
+      status: 400,
+      message: "nombre y password son requeridos",
+    };
+  }
 
+  // 👇 Aclaramos que 'nombre' pertenece al modelo Usuario
   const usuario = await Usuario.findOne({
-    where: where(fn('LOWER', col('nombre')), nombre.toLowerCase()),
+    where: where(fn("LOWER", col("Usuario.nombre")), nombre.toLowerCase()),
     include: {
       model: Rol,
-      attributes: ['nombre']
-    }
+      attributes: ["nombre"], // solo el nombre del rol
+    },
   });
 
-  if (!usuario) throw {
-    status: 404,
-    message: 'Usuario no encontrado'
-  };
+  if (!usuario) {
+    throw {
+      status: 404,
+      message: "Usuario no encontrado",
+    };
+  }
 
   const valido = await bcrypt.compare(password, usuario.password);
-  if (!valido) throw {
-    status: 401,
-    message: 'Contraseña incorrecta'
-  };
+  if (!valido) {
+    throw {
+      status: 401,
+      message: "Contraseña incorrecta",
+    };
+  }
 
   const token = jwt.sign(
     {
       id: usuario.id,
       nombre: usuario.nombre,
       email: usuario.email,
-      rol: usuario.Rol.nombre
+      rol: usuario.Rol.nombre,
     },
     JWT_SECRET,
-    { expiresIn: '12h' }
+    { expiresIn: "12h" }
   );
 
   return {
@@ -129,8 +136,8 @@ export async function loginUsuarioService({ nombre, password }) {
       id: usuario.id,
       nombre: usuario.nombre,
       email: usuario.email,
-      rol: usuario.Rol.nombre
-    }
+      rol: usuario.Rol.nombre,
+    },
   };
 }
 
