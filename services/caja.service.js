@@ -557,30 +557,33 @@ export async function agregarMontoInicialCajaService(usuario_id, montoAgregar) {
 
 
 
+
+
 export const getAllCajasGlobal = async ({ pagina = 1, limite = 300, fecha = null }) => {
-  let whereCajas = {};
+  const whereCajas = {};
+
   if (fecha) {
-    const inicioDia = new Date(fecha);
-    inicioDia.setHours(0, 0, 0, 0);
-    const finDia = new Date(fecha);
-    finDia.setHours(23, 59, 59, 999);
+    // Convertir fecha a rango completo del día (sin problemas de zona horaria)
+    const inicioDia = new Date(`${fecha}T00:00:00`);
+    const finDia = new Date(`${fecha}T23:59:59.999`);
     whereCajas.created_at = { [Op.between]: [inicioDia, finDia] };
   }
 
   const offset = (pagina - 1) * limite;
 
-  // Traer solo las cajas de la página actual
+  // Traer cajas con paginación y usuario relacionado
   const { rows: cajas, count: total } = await Caja.findAndCountAll({
     where: whereCajas,
     include: [{ model: Usuario, attributes: ['id', 'nombre'] }],
     order: [['created_at', 'DESC']],
-    limit:limite,
+    limit: limite,
     offset
   });
 
   const resultados = [];
 
   for (const caja of cajas) {
+    // Traer movimientos relacionados
     const [ventas, egresos, ingresos] = await Promise.all([
       Venta.findAll({ where: { caja_id: caja.id, estado: 'completada' } }),
       Egreso.findAll({ where: { caja_id: caja.id, estado: 'activo' } }),
