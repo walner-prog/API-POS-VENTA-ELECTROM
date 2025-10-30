@@ -34,17 +34,8 @@ const Configuracion = sequelize.define('Configuracion', {
   mensaje_recibo: {
     type: DataTypes.STRING(255),
     allowNull: true
-  },
-  impuesto_iva: {
-    type: DataTypes.DECIMAL(5,2),
-    allowNull: true,
-    defaultValue: 0.00
-  },
-  moneda_simbolo: {
-    type: DataTypes.STRING(10),
-    allowNull: false,
-    defaultValue: "C$"
   }
+   
 }, {
   tableName: 'configuraciones',
   timestamps: true,

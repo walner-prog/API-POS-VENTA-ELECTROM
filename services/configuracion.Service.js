@@ -8,7 +8,13 @@ export async function obtenerConfiguracionService() {
     config = await Configuracion.create({
       nombre_negocio: 'Pos Listo TPV',
       imprimir_recibo: true,
-      moneda_simbolo: 'C$'
+      logo_url: null,
+      telefono: null,
+      direccion: null,
+      ruc: null,
+      correo: null,
+      mensaje_recibo: null
+
     })
   }
   return config
