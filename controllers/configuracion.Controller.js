@@ -1,7 +1,7 @@
 import {
   obtenerConfiguracionService,
   actualizarConfiguracionService
-} from '../services/configuracionService.js'
+} from '../services/configuracion.Service.js'
 
 export async function obtenerConfiguracion(req, res) {
   try {
