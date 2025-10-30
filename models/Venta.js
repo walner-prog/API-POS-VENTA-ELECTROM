@@ -9,7 +9,6 @@ const Venta = sequelize.define('Venta', {
     type: DataTypes.DECIMAL(10,2),
     allowNull: false
 
-
   },
  
   descuento: {
@@ -43,6 +42,16 @@ const Venta = sequelize.define('Venta', {
   cancelada_en: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  paga_con: {
+    type: DataTypes.DECIMAL(10,2),
+    allowNull: false,
+    defaultValue: 0.00
+  },
+  cambio: {
+    type: DataTypes.DECIMAL(10,2),
+    allowNull: false,
+    defaultValue: 0.00
   }
 }, {
   tableName: 'ventas',

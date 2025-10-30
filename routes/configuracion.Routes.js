@@ -3,10 +3,11 @@ import {
   obtenerConfiguracion,
   actualizarConfiguracion
 } from '../controllers/configuracion.Controller.js'
+import authMiddleware from '../middlewares/auth.js';
 
 const router = express.Router()
-
-router.get('/', obtenerConfiguracion)
-router.put('/', actualizarConfiguracion)
+ 
+router.get('/', obtenerConfiguracion, authMiddleware);
+router.put('/', actualizarConfiguracion, authMiddleware);
 
 export default router
