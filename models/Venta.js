@@ -45,12 +45,12 @@ const Venta = sequelize.define('Venta', {
   },
   paga_con: {
     type: DataTypes.DECIMAL(10,2),
-    allowNull: false,
+    allowNull: true,
     defaultValue: 0.00
   },
   cambio: {
     type: DataTypes.DECIMAL(10,2),
-    allowNull: false,
+    allowNull: true,
     defaultValue: 0.00
   }
 }, {

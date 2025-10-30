@@ -5,6 +5,10 @@ import {
     getMonthlyDateRange, 
     NICARAGUA_OFFSET_MINUTES 
 }  from "../utils/dateUtils.js";
+import { reportesService } from '../services/venta/totalesVentasReporte.service.js';
+
+
+import { subMonths, startOfYear, startOfMonth, endOfMonth } from "date-fns";
 
 // --- REPORTE DIARIO ---
 export const getReporteDiario = async (req, res) => {
@@ -96,6 +100,37 @@ export const obtenerReporteController = async (req, res) => {
       success: false,
       message: 'Error al obtener el reporte de ventas',
       error: error.message
+    });
+  }
+};
+
+// --- REPORTE ANUAL ---
+
+export const obtenerReportesVentas = async (req, res) => {
+  try {
+    const hoy = new Date();
+    const inicioSemana = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 7);
+    const inicioMes = startOfMonth(hoy);
+    const inicio6Meses = subMonths(hoy, 6);
+    const inicioAnio = startOfYear(hoy);
+
+    const [semanal, mensual, seisMeses, anual, totales] = await Promise.all([
+      reportesService.semanal(inicioSemana, hoy),
+      reportesService.mensual(inicioMes, endOfMonth(hoy)),
+      reportesService.seisMeses(inicio6Meses, hoy),
+      reportesService.anual(inicioAnio, hoy),
+      reportesService.totales(),
+    ]);
+
+    res.json({
+      success: true,
+      data: { semanal, mensual, seisMeses, anual, totales },
+    });
+  } catch (error) {
+    console.error("Error al obtener reportes:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener reportes de ventas.",
     });
   }
 };
