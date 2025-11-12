@@ -42,7 +42,7 @@ export const crearProductoSchema = Joi.object({
   promocion: Joi.boolean().optional().default(false),
   fecha_promocion: Joi.date().optional().allow(null),
   fecha_final_promocion: Joi.date().optional().allow(null),
-  descuento_promocion: Joi.number().min(0).max(100).optional().allow(null),
+  descuento_promocion: Joi.number().min(0).max(100).optional().default(0),
 });
 
 export const editarProductoSchema = crearProductoSchema.keys({
