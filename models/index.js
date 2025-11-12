@@ -1,8 +1,9 @@
-import Usuario from './Usuario.js'
+
 import Rol from './Rol.js'
 import Categoria from './Categoria.js'
 import Producto from './Producto.js'
 import Caja from './caja.js'
+import Usuario from './Usuario.js'
 import Venta from './Venta.js'
 import DetalleVenta from './DetalleVenta.js'
 import Ticket from './Ticket.js'
@@ -28,8 +29,9 @@ Permiso.belongsToMany(Rol, { through: 'rol_permisos', foreignKey: 'permiso_id' }
 Categoria.hasMany(Producto, { foreignKey: 'categoria_id' })
 Producto.belongsTo(Categoria, { foreignKey: 'categoria_id' })
 
-Usuario.hasMany(Caja, { foreignKey: 'usuario_id' })
-Caja.belongsTo(Usuario, { foreignKey: 'usuario_id' })
+Usuario.hasMany(Caja, { foreignKey: 'usuario_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+Caja.belongsTo(Usuario, { foreignKey: 'usuario_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+
 
 Caja.hasMany(Venta, { foreignKey: 'caja_id' })
 Venta.belongsTo(Caja, { foreignKey: 'caja_id' })
@@ -95,8 +97,8 @@ StockMovimiento.belongsTo(Egreso, { foreignKey: 'referencia_id', constraints: fa
 Venta.hasMany(StockMovimiento, { foreignKey: 'referencia_id', constraints: false, scope: { referencia_tipo: 'venta' } });
 StockMovimiento.belongsTo(Venta, { foreignKey: 'referencia_id', constraints: false });
 
-Producto.hasMany(UnidadConversion, { foreignKey: 'base', sourceKey: 'unidad_base' });
-UnidadConversion.belongsTo(Producto, { foreignKey: 'base', targetKey: 'unidad_base' });
+Producto.hasMany(UnidadConversion, { foreignKey: 'base', sourceKey: 'unidad_base', constraints: false });
+UnidadConversion.belongsTo(Producto, { foreignKey: 'base', targetKey: 'unidad_base', constraints: false });
 
 
 
