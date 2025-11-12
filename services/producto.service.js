@@ -22,6 +22,16 @@ export async function crearProductoService({
   presentacion,
   stock,
   descuento,
+  // ✅ campos mayoreo
+  venta_mayoreo,
+  precio_mayoreo,
+  minimo_mayoreo,
+  // ✅ campos promoción
+  promocion,
+  fecha_promocion,
+  fecha_final_promocion,
+  descuento_promocion,
+
 }) {
   const t = await sequelize.transaction();
   try {
@@ -54,6 +64,15 @@ export async function crearProductoService({
         es_decimal: es_decimal || false,
         presentacion: presentacion || null,
         stock: stock || 0,
+        // ✅ mayoreo
+        venta_mayoreo: venta_mayoreo || false,
+        precio_mayoreo: precio_mayoreo || null,
+        minimo_mayoreo: minimo_mayoreo || null,
+        // ✅ promoción
+        promocion: promocion || false,
+        fecha_promocion: fecha_promocion || null,
+        fecha_final_promocion: fecha_final_promocion || null,
+        descuento_promocion: descuento_promocion || null,
       },
       { transaction: t }
     );
@@ -67,8 +86,7 @@ export async function crearProductoService({
 }
 
 
-
-
+ 
 export async function editarProductoService(id, data) {
   const t = await sequelize.transaction();
   try {
@@ -85,68 +103,68 @@ export async function editarProductoService(id, data) {
         transaction: t,
       });
       if (existeOtro) {
-        throw {
-          status: 400,
-          message: "Ya existe otro producto con ese código de barra.",
-        };
+        throw { status: 400, message: "Ya existe otro producto con ese código de barra." };
       }
     }
 
-    if (
-      data.precio_compra !== undefined &&
-      (typeof data.precio_compra !== "number" || data.precio_compra <= 0)
-    ) {
-      throw {
-        status: 400,
-        message: "El precio de compra debe ser un número mayor a cero.",
-      };
+    if (data.precio_compra !== undefined && (typeof data.precio_compra !== "number" || data.precio_compra <= 0)) {
+      throw { status: 400, message: "El precio de compra debe ser un número mayor a cero." };
     }
 
-    if (
-      data.precio_venta !== undefined &&
-      (typeof data.precio_venta !== "number" || data.precio_venta <= 0)
-    ) {
-      throw {
-        status: 400,
-        message: "El precio de venta debe ser un número mayor a cero.",
-      };
+    if (data.precio_venta !== undefined && (typeof data.precio_venta !== "number" || data.precio_venta <= 0)) {
+      throw { status: 400, message: "El precio de venta debe ser un número mayor a cero." };
     }
 
-    if (
-      data.precio_compra !== undefined &&
-      data.precio_venta !== undefined &&
-      data.precio_venta <= data.precio_compra
-    ) {
-      throw {
-        status: 400,
-        message: "El precio de venta debe ser mayor que el de compra.",
-      };
+    if (data.precio_compra !== undefined && data.precio_venta !== undefined && data.precio_venta <= data.precio_compra) {
+      throw { status: 400, message: "El precio de venta debe ser mayor que el de compra." };
     }
 
-    if (
-      data.stock !== undefined &&
-      (typeof data.stock !== "number" || data.stock < 0)
-    ) {
+    if (data.stock !== undefined && (typeof data.stock !== "number" || data.stock < 0)) {
       throw { status: 400, message: "El stock debe ser un número mayor o igual a cero." };
     }
 
-    if (
-      data.descuento !== undefined &&
-      (data.descuento < 0 || data.descuento > 100)
-    ) {
+    if (data.descuento !== undefined && (data.descuento < 0 || data.descuento > 100)) {
       throw { status: 400, message: "El descuento debe estar entre 0 y 100%." };
     }
 
-    // === NUEVOS CAMPOS DE UNIDAD Y DECIMALIDAD ===
+    // === VALIDACIONES UNIDAD Y DECIMALIDAD ===
     if (data.unidad_base && typeof data.unidad_base !== "string") {
       throw { status: 400, message: "La unidad base debe ser un texto válido." };
     }
 
     if (data.es_decimal !== undefined && typeof data.es_decimal !== "boolean") {
-      throw {
-        status: 400,
-        message: "El campo 'es_decimal' debe ser verdadero o falso.",
-      };
+      throw { status: 400, message: "El campo 'es_decimal' debe ser verdadero o falso." };
+    }
+
+    // === VALIDACIONES MAYOREO ===
+    if (data.venta_mayoreo !== undefined && typeof data.venta_mayoreo !== "boolean") {
+      throw { status: 400, message: "El campo 'venta_mayoreo' debe ser verdadero o falso." };
+    }
+
+    if (data.precio_mayoreo !== undefined && data.precio_mayoreo !== null && (typeof data.precio_mayoreo !== "number" || data.precio_mayoreo <= 0)) {
+      throw { status: 400, message: "El precio de mayoreo debe ser un número mayor a cero o null." };
+    }
+
+    if (data.minimo_mayoreo !== undefined && data.minimo_mayoreo !== null && (!Number.isInteger(data.minimo_mayoreo) || data.minimo_mayoreo <= 0)) {
+      throw { status: 400, message: "El mínimo de mayoreo debe ser un número entero mayor a cero o null." };
+    }
+
+    // === VALIDACIONES PROMOCIÓN ===
+    if (data.promocion !== undefined && typeof data.promocion !== "boolean") {
+      throw { status: 400, message: "El campo 'promocion' debe ser verdadero o falso." };
+    }
+
+    if (data.fecha_promocion !== undefined && data.fecha_promocion !== null && isNaN(new Date(data.fecha_promocion).getTime())) {
+      throw { status: 400, message: "La fecha de inicio de promoción no es válida." };
+    }
+
+    if (data.fecha_final_promocion !== undefined && data.fecha_final_promocion !== null && isNaN(new Date(data.fecha_final_promocion).getTime())) {
+      throw { status: 400, message: "La fecha final de promoción no es válida." };
+    }
+
+    // === VALIDACIÓN descuento_promocion ===
+    if (data.descuento_promocion !== undefined && (typeof data.descuento_promocion !== "number" || data.descuento_promocion < 0 || data.descuento_promocion > 100)) {
+      throw { status: 400, message: "El descuento de promoción debe ser un número entre 0 y 100%." };
     }
 
     // === GUARDAR VALORES ANTERIORES PARA HISTORIAL ===
@@ -165,19 +183,25 @@ export async function editarProductoService(id, data) {
       "precio_venta",
       "stock",
       "unidad_medida",
-      "unidad_base", // ✅ nuevo
-      "es_decimal",  // ✅ nuevo
+      "unidad_base",
+      "es_decimal",
       "presentacion",
       "descuento",
+      // mayoreo
+      "venta_mayoreo",
+      "precio_mayoreo",
+      "minimo_mayoreo",
+      // promoción
+      "promocion",
+      "fecha_promocion",
+      "fecha_final_promocion",
+      "descuento_promocion", // ✅ nuevo
     ];
 
     for (const campo of campos) {
       if (campo in data) {
-        // Si es campo opcional vacío, se guarda como null
-        if (
-          ["codigo_barra", "unidad_medida", "presentacion", "categoria_id"].includes(campo) &&
-          !data[campo]
-        ) {
+        // Campos opcionales vacíos se guardan como null
+        if (["codigo_barra", "unidad_medida", "presentacion", "categoria_id", "precio_mayoreo", "minimo_mayoreo", "fecha_promocion", "fecha_final_promocion"].includes(campo) && !data[campo]) {
           producto[campo] = null;
         } else {
           producto[campo] = data[campo];
@@ -217,6 +241,7 @@ export async function editarProductoService(id, data) {
     throw error;
   }
 }
+
 
 // Servicio para generar código de barras único
 export async function generarCodigoBarra() {

@@ -37,10 +37,16 @@ export const crearProductoSchema = Joi.object({
   precio_mayoreo: Joi.number().precision(2).optional().allow(null),
   minimo_mayoreo: Joi.number().integer().optional().allow(null),
   descuento: Joi.number().min(0).max(100).optional().default(0),
+
+  // ✅ campos de promoción
+  promocion: Joi.boolean().optional().default(false),
+  fecha_promocion: Joi.date().optional().allow(null),
+  fecha_final_promocion: Joi.date().optional().allow(null),
+  descuento_promocion: Joi.number().min(0).max(100).optional().allow(null),
 });
 
 export const editarProductoSchema = crearProductoSchema.keys({
-  // Opcional, pero útil: en edición no exigimos algunos campos
+  // Opcional, en edición no exigimos algunos campos
   nombre: Joi.string().max(150).optional(),
   categoria_id: Joi.number().integer().optional(),
 });
