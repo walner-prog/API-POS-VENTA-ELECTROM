@@ -16,6 +16,12 @@ import ClaveCancelacion from './ClaveCancelacion.js'
 import  Ingreso from './Ingreso.js'
 import  StockMovimiento from './StockMovimiento.js'
 
+import UnidadConversion from './UnidadConversion.js';
+
+Producto.hasMany(UnidadConversion, { foreignKey: 'base', sourceKey: 'unidad_base' });
+UnidadConversion.belongsTo(Producto, { foreignKey: 'base', targetKey: 'unidad_base' });
+
+
 
  
 

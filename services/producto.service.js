@@ -17,69 +17,26 @@ export async function crearProductoService({
   precio_compra,
   precio_venta,
   unidad_medida,
+  unidad_base,   // ✅ nuevo
+  es_decimal,    // ✅ nuevo
   presentacion,
   stock,
   descuento,
 }) {
   const t = await sequelize.transaction();
   try {
-    if (!categoria_id) {
-      throw {
-        status: 400,
-        message: "La categoría es obligatoria para registrar el producto.",
-      };
-    }
+    if (!categoria_id) throw { status: 400, message: "La categoría es obligatoria." };
 
-    const categoriaExiste = await Categoria.findByPk(categoria_id, {
-      transaction: t,
-    });
-    if (!categoriaExiste) {
-      throw {
-        status: 400,
-        message:
-          "La categoría seleccionada no existe. Por favor seleccione una válida.",
-      };
-    }
-
-    if (typeof precio_compra !== "number" || precio_compra <= 0) {
-      throw {
-        status: 400,
-        message: "El precio de compra debe ser un número mayor a cero.",
-      };
-    }
-
-    if (typeof precio_venta !== "number" || precio_venta <= 0) {
-      throw {
-        status: 400,
-        message: "El precio de venta debe ser un número mayor a cero.",
-      };
-    }
+    const categoriaExiste = await Categoria.findByPk(categoria_id, { transaction: t });
+    if (!categoriaExiste) throw { status: 400, message: "La categoría no existe." };
 
     if (precio_venta <= precio_compra) {
-      throw {
-        status: 400,
-        message: "El precio de venta debe ser mayor que el precio de compra.",
-      };
-    }
-
-    if (stock <= 0) {
-      throw {
-        status: 400,
-        message: "El stock debe ser mayor que cero.",
-      };
+      throw { status: 400, message: "El precio de venta debe ser mayor que el de compra." };
     }
 
     const codigo = codigo_barra || `CB-${Date.now()}`;
-    const existente = await Producto.findOne({
-      where: { codigo_barra: codigo },
-      transaction: t,
-    });
-    if (existente) {
-      throw {
-        status: 400,
-        message: "Ya existe un producto con ese código de barra.",
-      };
-    }
+    const existente = await Producto.findOne({ where: { codigo_barra: codigo }, transaction: t });
+    if (existente) throw { status: 400, message: "Ya existe un producto con ese código." };
 
     const utilidad = precio_venta - precio_compra;
 
@@ -93,11 +50,165 @@ export async function crearProductoService({
         utilidad,
         descuento: descuento || 0.0,
         unidad_medida: unidad_medida || null,
+        unidad_base: unidad_base || unidad_medida || 'unidad',
+        es_decimal: es_decimal || false,
         presentacion: presentacion || null,
         stock: stock || 0,
       },
       { transaction: t }
     );
+
+    await t.commit();
+    return producto;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+}
+
+
+
+
+export async function editarProductoService(id, data) {
+  const t = await sequelize.transaction();
+  try {
+    const producto = await Producto.findByPk(id, { transaction: t });
+    if (!producto) throw { status: 404, message: "Producto no encontrado." };
+
+    // === VALIDACIONES BÁSICAS ===
+    if (data.codigo_barra && data.codigo_barra !== producto.codigo_barra) {
+      const existeOtro = await Producto.findOne({
+        where: {
+          codigo_barra: data.codigo_barra,
+          id: { [Op.ne]: id },
+        },
+        transaction: t,
+      });
+      if (existeOtro) {
+        throw {
+          status: 400,
+          message: "Ya existe otro producto con ese código de barra.",
+        };
+      }
+    }
+
+    if (
+      data.precio_compra !== undefined &&
+      (typeof data.precio_compra !== "number" || data.precio_compra <= 0)
+    ) {
+      throw {
+        status: 400,
+        message: "El precio de compra debe ser un número mayor a cero.",
+      };
+    }
+
+    if (
+      data.precio_venta !== undefined &&
+      (typeof data.precio_venta !== "number" || data.precio_venta <= 0)
+    ) {
+      throw {
+        status: 400,
+        message: "El precio de venta debe ser un número mayor a cero.",
+      };
+    }
+
+    if (
+      data.precio_compra !== undefined &&
+      data.precio_venta !== undefined &&
+      data.precio_venta <= data.precio_compra
+    ) {
+      throw {
+        status: 400,
+        message: "El precio de venta debe ser mayor que el de compra.",
+      };
+    }
+
+    if (
+      data.stock !== undefined &&
+      (typeof data.stock !== "number" || data.stock < 0)
+    ) {
+      throw { status: 400, message: "El stock debe ser un número mayor o igual a cero." };
+    }
+
+    if (
+      data.descuento !== undefined &&
+      (data.descuento < 0 || data.descuento > 100)
+    ) {
+      throw { status: 400, message: "El descuento debe estar entre 0 y 100%." };
+    }
+
+    // === NUEVOS CAMPOS DE UNIDAD Y DECIMALIDAD ===
+    if (data.unidad_base && typeof data.unidad_base !== "string") {
+      throw { status: 400, message: "La unidad base debe ser un texto válido." };
+    }
+
+    if (data.es_decimal !== undefined && typeof data.es_decimal !== "boolean") {
+      throw {
+        status: 400,
+        message: "El campo 'es_decimal' debe ser verdadero o falso.",
+      };
+    }
+
+    // === GUARDAR VALORES ANTERIORES PARA HISTORIAL ===
+    const valoresAnteriores = {
+      precio_compra: producto.precio_compra,
+      precio_venta: producto.precio_venta,
+      descuento: producto.descuento,
+    };
+
+    // === CAMPOS PERMITIDOS A ACTUALIZAR ===
+    const campos = [
+      "nombre",
+      "codigo_barra",
+      "categoria_id",
+      "precio_compra",
+      "precio_venta",
+      "stock",
+      "unidad_medida",
+      "unidad_base", // ✅ nuevo
+      "es_decimal",  // ✅ nuevo
+      "presentacion",
+      "descuento",
+    ];
+
+    for (const campo of campos) {
+      if (campo in data) {
+        // Si es campo opcional vacío, se guarda como null
+        if (
+          ["codigo_barra", "unidad_medida", "presentacion", "categoria_id"].includes(campo) &&
+          !data[campo]
+        ) {
+          producto[campo] = null;
+        } else {
+          producto[campo] = data[campo];
+        }
+      }
+    }
+
+    // === RECALCULAR UTILIDAD ===
+    producto.utilidad = producto.precio_venta - producto.precio_compra;
+
+    // === MONITOREAR CAMBIOS EN PRECIO Y DESCUENTO ===
+    const camposAMonitorear = ["precio_compra", "precio_venta", "descuento"];
+    const cambios = [];
+    for (const campo of camposAMonitorear) {
+      if (campo in data && data[campo] !== valoresAnteriores[campo]) {
+        cambios.push({
+          producto_id: producto.id,
+          campo,
+          valor_anterior: valoresAnteriores[campo],
+          valor_nuevo: data[campo],
+          usuario_id: data.usuario_id || null,
+        });
+      }
+    }
+
+    // === GUARDAR CAMBIOS ===
+    await producto.save({ transaction: t });
+
+    if (cambios.length > 0) {
+      await HistorialProducto.bulkCreate(cambios, { transaction: t });
+    }
 
     await t.commit();
     return producto;
@@ -183,132 +294,6 @@ export async function agregarStockProducto(
     };
   } catch (error) {
     if (!transaction) await t.rollback();
-    throw error;
-  }
-}
-
-export async function editarProductoService(id, data) {
-  const t = await sequelize.transaction();
-  try {
-    const producto = await Producto.findByPk(id, { transaction: t });
-    if (!producto) throw { status: 404, message: "Producto no encontrado" };
-
-    // Validaciones de código de barra
-    if (data.codigo_barra && data.codigo_barra !== producto.codigo_barra) {
-      const existeOtro = await Producto.findOne({
-        where: {
-          codigo_barra: data.codigo_barra,
-          id: { [Op.ne]: id },
-        },
-        transaction: t,
-      });
-      if (existeOtro) {
-        throw {
-          status: 400,
-          message: "Ya existe otro producto con ese código de barra.",
-        };
-      }
-    }
-
-    // Validaciones de precios
-    if (typeof data.precio_compra !== "number" || data.precio_compra <= 0) {
-      throw {
-        status: 400,
-        message: "El precio de compra debe ser un número mayor a cero.",
-      };
-    }
-
-    if (typeof data.precio_venta !== "number" || data.precio_venta <= 0) {
-      throw {
-        status: 400,
-        message: "El precio de venta debe ser un número mayor a cero.",
-      };
-    }
-
-    if (data.precio_venta <= data.precio_compra) {
-      throw {
-        status: 400,
-        message: "El precio de venta debe ser mayor que el precio de compra.",
-      };
-    }
-
-    if (data.stock <= 0) {
-      throw { status: 400, message: "El stock debe ser mayor que cero." };
-    }
-
-    if (
-      data.descuento !== undefined &&
-      (data.descuento < 0 || data.descuento > 100)
-    ) {
-      throw { status: 400, message: "El descuento debe estar entre 0 y 100%" };
-    }
-
-    // Valores previos para monitoreo
-    const valoresAnteriores = {
-      precio_compra: producto.precio_compra,
-      precio_venta: producto.precio_venta,
-      descuento: producto.descuento,
-    };
-
-    // Actualizar campos correctamente
-    const campos = [
-      "nombre",
-      "codigo_barra",
-      "categoria_id",
-      "precio_compra",
-      "precio_venta",
-      "stock",
-      "unidad_medida",
-      "presentacion",
-      "descuento", // Nuevo campo
-    ];
-    for (const campo of campos) {
-      if (campo in data) {
-        // Asigna el valor tal cual; si es opcional y vacío, entonces null
-        if (
-          [
-            "codigo_barra",
-            "unidad_medida",
-            "presentacion",
-            "categoria_id",
-          ].includes(campo) &&
-          !data[campo]
-        ) {
-          producto[campo] = null;
-        } else {
-          producto[campo] = data[campo];
-        }
-      }
-    }
-
-    // Recalcular utilidad
-    producto.utilidad = producto.precio_venta - producto.precio_compra;
-
-    // Monitorear cambios para historial
-    const camposAMonitorear = ["precio_compra", "precio_venta", "descuento"];
-    const cambios = [];
-    for (const campo of camposAMonitorear) {
-      if (campo in data && data[campo] !== valoresAnteriores[campo]) {
-        cambios.push({
-          producto_id: producto.id,
-          campo,
-          valor_anterior: valoresAnteriores[campo],
-          valor_nuevo: data[campo],
-          usuario_id: data.usuario_id || null,
-        });
-      }
-    }
-
-    // Guardar producto e historial
-    await producto.save({ transaction: t });
-    if (cambios.length > 0) {
-      await HistorialProducto.bulkCreate(cambios, { transaction: t });
-    }
-
-    await t.commit();
-    return producto;
-  } catch (error) {
-    await t.rollback();
     throw error;
   }
 }

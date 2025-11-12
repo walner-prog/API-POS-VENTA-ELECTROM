@@ -29,6 +29,19 @@ export async function crearProducto(req, res) {
 }
 
 
+export async function editarProducto(req, res) {
+  try {
+    const data = req.body;
+
+    // Aquí podrías validar manualmente si es necesario, pero en este caso se omite
+    const producto = await productoService.editarProductoService(req.params.id, data);
+
+    res.json(producto);
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message || 'Error al editar producto' });
+  }
+}
+
 export async function generarCodigoBarra(req, res) {
   try {
     const { codigo, barcodeBase64 } = await productoService.generarCodigoBarra()
@@ -43,20 +56,6 @@ export async function generarCodigoBarra(req, res) {
     res.status(error.status || 500).json({
       message: error.message || 'Error al generar código de barra'
     })
-  }
-}
-
-
-export async function editarProducto(req, res) {
-  try {
-    const data = req.body;
-
-    // Aquí podrías validar manualmente si es necesario, pero en este caso se omite
-    const producto = await productoService.editarProductoService(req.params.id, data);
-
-    res.json(producto);
-  } catch (error) {
-    res.status(error.status || 500).json({ message: error.message || 'Error al editar producto' });
   }
 }
 
