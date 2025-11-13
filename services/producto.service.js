@@ -193,6 +193,7 @@ export async function editarProductoService(id, data) {
       "venta_mayoreo",
       "precio_mayoreo",
       "minimo_mayoreo",
+      "maximo_mayoreo",
       // promoción
       "promocion",
       "fecha_promocion",
