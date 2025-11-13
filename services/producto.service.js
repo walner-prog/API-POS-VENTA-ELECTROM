@@ -444,12 +444,25 @@ export async function obtenerProductoPorIdService(id) {
       "id",
       "nombre",
       "codigo_barra",
+      "categoria_id",
       "precio_compra",
       "precio_venta",
       "stock",
       "unidad_medida",
+      "unidad_base",
+      "es_decimal",
       "presentacion",
-      "categoria_id",
+      "descuento",
+      // mayoreo
+      "venta_mayoreo",
+      "precio_mayoreo",
+      "minimo_mayoreo",
+      "maximo_mayoreo",
+      // promoción
+      "promocion",
+      "fecha_promocion",
+      "fecha_final_promocion",
+      "descuento_promocion", // ✅ nuevo
     ],
     include: {
       model: Categoria,
