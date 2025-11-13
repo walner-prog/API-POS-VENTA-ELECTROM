@@ -1,5 +1,5 @@
 import sequelize from '../../config/database.js'
-import { Venta, Caja, Ticket, Producto, Conversion } from '../../models/index.js';
+import { Venta, Caja, Ticket, Producto, UnidadConversion } from '../../models/index.js';
  
 import { validarStock } from './utils/validarStock.js'
 import { descontarStock } from './utils/descontarStock.js'
@@ -39,11 +39,11 @@ export async function crearVentaService({ carrito, cliente_nombre, observacion }
 
             // 3.1️⃣ Conversión a unidad_base
             if (item.unidad_medida && item.unidad_medida !== producto.unidad_base) {
-                const conversion = await Conversion.findOne({
+                const unidadConversion = await UnidadConversion.findOne({
                     where: { de: item.unidad_medida, a: producto.unidad_base },
                     transaction: t
                 });
-                if (conversion) cantidadBase *= parseFloat(conversion.factor);
+                if (unidadConversion) cantidadBase *= parseFloat(unidadConversion.factor);
                 else throw new Error(`No existe conversión de ${item.unidad_medida} a ${producto.unidad_base}`);
             }
 
