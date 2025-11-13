@@ -26,6 +26,7 @@ export async function crearProductoService({
   venta_mayoreo,
   precio_mayoreo,
   minimo_mayoreo,
+  maximo_mayoreo,
   // ✅ campos promoción
   promocion,
   fecha_promocion,
@@ -68,6 +69,7 @@ export async function crearProductoService({
         venta_mayoreo: venta_mayoreo || false,
         precio_mayoreo: precio_mayoreo || null,
         minimo_mayoreo: minimo_mayoreo || null,
+        maximo_mayoreo: maximo_mayoreo || null,
         // ✅ promoción
         promocion: promocion || false,
         fecha_promocion: fecha_promocion || null,
