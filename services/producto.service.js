@@ -72,7 +72,7 @@ export async function crearProductoService({
         promocion: promocion || false,
         fecha_promocion: fecha_promocion || null,
         fecha_final_promocion: fecha_final_promocion || null,
-        descuento_promocion: descuento_promocion || null,
+        descuento_promocion: descuento_promocion || 0.0,
       },
       { transaction: t }
     );

@@ -31,12 +31,14 @@ export const crearProductoSchema = Joi.object({
     .default("unidad"),
 
   es_decimal: Joi.boolean().optional().default(false),
-
+  descuento: Joi.number().min(0).max(100).optional().default(0),
   // ✅ campos de mayoreo y descuento
   venta_mayoreo: Joi.boolean().optional(),
   precio_mayoreo: Joi.number().precision(2).optional().allow(null),
   minimo_mayoreo: Joi.number().integer().optional().allow(null),
-  descuento: Joi.number().min(0).max(100).optional().default(0),
+  maximo_mayoreo: Joi.number().integer().optional().allow(null),
+
+
 
   // ✅ campos de promoción
   promocion: Joi.boolean().optional().default(false),
