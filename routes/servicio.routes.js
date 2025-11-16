@@ -5,8 +5,8 @@ import authMiddleware from '../middlewares/auth.js';
 
 const router = Router();
 
-router.post('/', servicioCtrl.crearServicio);
-router.get('/', servicioCtrl.listarServicios);
-router.delete('/:id', servicioCtrl.eliminarServicio);
+router.post('/', authMiddleware, servicioCtrl.crearServicio);
+router.get('/', authMiddleware, servicioCtrl.listarServicios);
+router.delete('/:id', authMiddleware, servicioCtrl.eliminarServicio);
 
 export default router;
