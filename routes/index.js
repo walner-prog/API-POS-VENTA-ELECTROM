@@ -12,6 +12,8 @@ import ingresoRoutes from './ingreso.routes.js'
 import compraRoutes from './compra.route.js'
 import kpisRoutes from "./kpis.routes.js";
 import configuracionRoute from './configuracion.Routes.js'
+import servicioRoutes from './servicio.routes.js'
+import tiposServicioRoutes from './tiposServicio.routes.js'
  
 
 
@@ -29,5 +31,7 @@ export {
   ingresoRoutes,
   compraRoutes,
   kpisRoutes,
-  configuracionRoute
+  configuracionRoute,
+  servicioRoutes,
+  tiposServicioRoutes
 };

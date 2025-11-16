@@ -114,9 +114,7 @@ import { descontarStock } from './utils/descontarStock.js'
  
 
  
-
 /*
-
 export async function crearVentaService({ carrito, cliente_nombre, observacion }, usuario_id) {
     const t = await sequelize.transaction();
     const start = Date.now();

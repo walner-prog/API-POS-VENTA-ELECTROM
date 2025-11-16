@@ -18,6 +18,8 @@ import  Ingreso from './Ingreso.js'
 import  StockMovimiento from './StockMovimiento.js'
 
 import UnidadConversion from './UnidadConversion.js';
+import TipoServicio from './TipoServicio.js';
+import Servicio from './Servicio.js';
 
 // Relaciones
 Rol.hasMany(Usuario, { foreignKey: 'role_id' });
@@ -100,12 +102,22 @@ StockMovimiento.belongsTo(Venta, { foreignKey: 'referencia_id', constraints: fal
 Producto.hasMany(UnidadConversion, { foreignKey: 'base', sourceKey: 'unidad_base', constraints: false });
 UnidadConversion.belongsTo(Producto, { foreignKey: 'base', targetKey: 'unidad_base', constraints: false });
 
+// --- relaciones ---
+TipoServicio.hasMany(Servicio, { foreignKey: 'tipo_servicio_id' });
+Servicio.belongsTo(TipoServicio, { foreignKey: 'tipo_servicio_id' });
 
+ 
+Caja.hasMany(Servicio, { foreignKey: 'caja_id' });
+Servicio.belongsTo(Caja, { foreignKey: 'caja_id' });
+
+Usuario.hasMany(Servicio, { foreignKey: 'usuario_id' });
+Servicio.belongsTo(Usuario, { foreignKey: 'usuario_id' });
 
 
 export {
   Usuario, Rol, Categoria, Producto, Caja,
   Venta, DetalleVenta, Ticket, Egreso, InventarioLote,
   MovimientoCaja, DetalleVentaLote, HistorialProducto,
-  Permiso, ClaveCancelacion, Ingreso,StockMovimiento, UnidadConversion
+  Permiso, ClaveCancelacion, Ingreso,StockMovimiento, UnidadConversion,
+  TipoServicio, Servicio
 }

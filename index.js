@@ -20,7 +20,9 @@ import {
   ingresoRoutes,
   compraRoutes,
   kpisRoutes,
-  configuracionRoute
+  configuracionRoute,
+  servicioRoutes,
+  tiposServicioRoutes
 
 } from './routes/index.js'
 import './models/index.js'
@@ -43,6 +45,8 @@ app.use('/api/ingresos', ingresoRoutes)
 app.use('/api/compras', compraRoutes)
 app.use('/api/kpis', kpisRoutes)
 app.use('/api/configuracion', configuracionRoute)
+app.use('/api/servicios', servicioRoutes)
+app.use('/api/tipos-servicio', tiposServicioRoutes)
 
 app.get('/', (req, res) => res.send('API POS funcionando 🚀'))
 
