@@ -14,6 +14,10 @@ export async function crearServicioService(data, usuario) {
   try {
     const caja = await validarCajaAbierta(usuario.id);
 
+    if (caja.usuario_id !== usuario.id) {
+      throw { status: 403, message: 'No tienes permiso para operar en esta caja' };
+    }
+
     const tipo = await TipoServicio.findByPk(data.tipo_servicio_id);
     if (!tipo) throw { status: 404, message: 'Tipo de servicio no encontrado' };
 
