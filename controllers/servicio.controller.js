@@ -24,7 +24,7 @@ export async function listarServicios(req, res) {
 
 export async function eliminarServicio(req, res) {
   try {
-    const usuario = req.user;
+  const usuario = req.usuario; 
     const { id } = req.params;
     const result = await servicioService.eliminarServicioService(id, usuario.id);
     res.json({ success: true, result });

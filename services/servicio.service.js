@@ -81,9 +81,9 @@ export async function eliminarServicioService(id, anulado_por) {
       throw { status: 400, message: "No se puede anular porque la caja está cerrada" };
 
     // ✔ RESTAR DINERO A LA CAJA
-    caja.monto_final = parseFloat(caja.monto_final) - parseFloat(servicio.monto);
-    if (caja.monto_final < 0) caja.monto_final = 0;
-    await caja.save({ transaction: t });
+   // caja.monto_final = parseFloat(caja.monto_final) - parseFloat(servicio.monto);
+    //if (caja.monto_final < 0) caja.monto_final = 0;
+   // await caja.save({ transaction: t });
 
     servicio.estado = 'anulado';
     await servicio.save({ transaction: t });
